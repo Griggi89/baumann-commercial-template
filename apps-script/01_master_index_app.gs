@@ -87,6 +87,15 @@ function createCommercialDeal(address) {
   if (!address || !address.trim()) {
     throw new Error('Address is required.');
   }
+  // Defensive trim — browser-automation and copy-from-markdown paste paths
+  // can leave trailing hyphens, underscores, whitespace, or punctuation
+  // on the address. Strip them before the address hits folder/sheet names,
+  // the Master Index, or the Settings tab.
+  address = address
+    .trim()
+    .replace(/[\s\-_,;]+$/g, '')  // trailing whitespace/hyphens/underscores/commas/semicolons
+    .trim();
+
   ensureMasterIndexHeaders();
 
   const slug = addressToSlug_(address);

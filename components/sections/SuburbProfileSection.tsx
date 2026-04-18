@@ -52,9 +52,9 @@ export default function SuburbProfileSection() {
 
       {suburbProfile.reportFiles.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {suburbProfile.reportFiles.map((f) => (
+          {suburbProfile.reportFiles.map((f, i) => (
             <a
-              key={f.url}
+              key={`${f.name}-${i}`}
               href={f.url}
               target="_blank"
               rel="noopener noreferrer"

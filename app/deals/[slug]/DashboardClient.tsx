@@ -13,6 +13,7 @@ import { PropertyDataProvider, usePropertyData } from '@/lib/PropertyDataContext
 import Sidebar from '@/components/layout/Sidebar';
 
 import FeaturesSection             from '@/components/sections/FeaturesSection';
+import ExecutiveSummarySection     from '@/components/sections/ExecutiveSummarySection';
 import CashflowSection             from '@/components/sections/CashflowSection';
 import RentalAssessmentSection     from '@/components/sections/RentalAssessmentSection';
 import SalesComparablesSection     from '@/components/sections/SalesComparablesSection';
@@ -28,6 +29,7 @@ import DisclaimerSection           from '@/components/sections/DisclaimerSection
 
 const SECTION_IDS = [
   'features',
+  'summary',
   'cashflow',
   'rental',
   'sales',
@@ -194,6 +196,7 @@ function DashboardContent() {
           </div>
 
           <FeaturesSection />
+          <ExecutiveSummarySection />
           <CashflowSection />
           <RentalAssessmentSection />
           <SalesComparablesSection />

@@ -14,10 +14,10 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Redirect root and legacy /properties paths to /deals
+  // Legacy /properties paths redirect to /deals. Root / renders the
+  // landing page defined in app/page.tsx — no redirect.
   async redirects() {
     return [
-      { source: '/', destination: '/deals', permanent: false },
       { source: '/properties', destination: '/deals', permanent: true },
       { source: '/properties/:slug', destination: '/deals/:slug', permanent: true },
     ];

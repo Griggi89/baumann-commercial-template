@@ -4,6 +4,12 @@ Commercial real estate dashboard pipeline — companion to the residential
 `baumann-dashboard`. Untouched-residential guarantee: nothing in this repo
 depends on or modifies the residential codebase.
 
+## Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGriggi89%2Fbaumann-commercial-template&env=COMMERCIAL_MASTER_INDEX_SHEET_ID,ANTHROPIC_API_KEY&envDescription=COMMERCIAL_MASTER_INDEX_SHEET_ID%20is%20the%20sheet%20ID%20of%20the%20%22BPI%20COMMERCIAL%20-%20MASTER%20Index%20App%22%20sheet.%20ANTHROPIC_API_KEY%20powers%20the%20Ask%20ChristAIn%20chat.&project-name=baumann-commercial-template&repository-name=baumann-commercial-template)
+
+Full walkthrough: [`VERCEL-DEPLOY.md`](./VERCEL-DEPLOY.md).
+
 ## Contents
 
 | Path | What it is |

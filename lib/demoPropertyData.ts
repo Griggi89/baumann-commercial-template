@@ -22,14 +22,13 @@ export const demoPropertyData: PropertyData = {
     heroImage: 'https://res-3.cloudinary.com/cre/image/fetch/h_900,f_auto,c_fill,q_auto,d_placeholder_viubzx.png/https%3A%2F%2Fbucket-api.commercialrealestate.com.au%2Fv1%2Fbucket%2Fimage%2F2020772962_1_1_260417_114738-w1600-h1199',
     propertyUrl: 'https://www.commercialrealestate.com.au/property/22-maroochydore-road-maroochydore-qld-4558-2020772962',
     details: [
-      { label: 'Property Type',       value: 'Commercial Office / Retail' },
-      { label: 'Building Area (sqm)', value: '1,240' },
-      { label: 'Land Area (sqm)',     value: '1,890' },
-      { label: 'Zoning',              value: 'Principal Centre (Sunshine Coast Planning Scheme)' },
-      { label: 'Parking Spaces',      value: '32 (on-grade + basement)' },
-      { label: 'NABERS Rating',       value: '4.5 Stars Energy' },
-      { label: 'Year Built',          value: '2008 (refurbished 2021)' },
-      { label: 'Tenancy Count',       value: '1' },
+      { label: 'Property Type',        value: 'Medical & Health' },
+      { label: 'Building Area (sqm)',  value: '350' },
+      { label: 'Land Area (sqm)',      value: '1,699' },
+      { label: 'Zoning',               value: 'Principal Centre (Sunshine Coast Planning Scheme)' },
+      { label: 'Parking Spaces',       value: '10 (on-site)' },
+      { label: 'Availability',         value: 'Leased (single-tenant triple net)' },
+      { label: 'Tenancy Count',        value: 'Single tenant (100% occupied)' },
     ],
   },
 
@@ -38,6 +37,7 @@ export const demoPropertyData: PropertyData = {
     items: [
       { label: 'Tenant',              value: 'Sunshine Coast Health & Wellness Group Pty Ltd' },
       { label: 'Tenant Covenant',     value: 'Strong private — 14-yr operating history, Sunshine Coast HQ' },
+      { label: 'Occupancy',           value: 'Single tenant (100%)' },
       { label: 'Lease Type',          value: 'Triple Net (all outgoings recovered)' },
       { label: 'Lease Start',         value: '2024-03-01' },
       { label: 'Lease Expiry',        value: '2034-02-28' },
@@ -54,7 +54,7 @@ export const demoPropertyData: PropertyData = {
 
   cashflow: {
     purchasePrice: 6_500_000,
-    lvr: 0.75,
+    lvr: 0.70,  // commercial standard — 30% equity
     interestRate: 0.07,
     loanTermYears: 25,
     annualRent: 438_750,
@@ -63,30 +63,31 @@ export const demoPropertyData: PropertyData = {
     // NOI grows with rent). Both set to rentGrowthRate for consistency.
     capitalGrowthRate: 0.035,
     year1CapitalGrowthRate: 0.035,
-    expenseGrowthRate: 0.03,
-    annualExpenses: 30_713,  // mgmt fee 7% × rent
+    expenseGrowthRate: 0.035,  // mgmt fee tied to CPI
+    // Single-tenant triple net: landlord pays only management fee;
+    // all other outgoings (rates, insurance, maintenance) recovered from tenant.
+    annualExpenses: 4_000,
     expenseBreakdown: [
-      { label: 'Property Management Fee', annual: 30_713 },
+      { label: 'Property Management Fee', annual: 4_000 },
     ],
-    // Total cash = 30% of purchase price = $1.95M at 75% LVR.
     upfrontCosts: {
-      deposit:            1_625_000, // 25% of $6.5M
+      deposit:            1_950_000, // 30% of $6.5M (commercial standard equity)
       stampDuty:          272_000,   // QLD commercial transfer duty (approx)
       gst:                0,
       conveyancing:       8_000,
       buildingAndPest:    3_500,
       buildingInsurance:  0,
       titleInsurance:     0,
-      totalRequired:      1_950_000, // 30% of $6.5M
+      totalRequired:      2_233_500, // deposit + acquisition costs
     },
     equityProjection: Array.from({ length: 10 }, (_, i) => {
       const year = i + 1;
       const growth = 0.035;
       const annualRent = Math.round(438_750 * Math.pow(1 + growth, i));
       const propertyValue = Math.round(6_500_000 * Math.pow(1 + growth, i));
-      const loan = 4_875_000;  // 75% of $6.5M
+      const loan = 4_550_000;  // 70% of $6.5M
       const interest = loan * 0.07;
-      const outgoings = Math.round(annualRent * 0.07);
+      const outgoings = Math.round(4_000 * Math.pow(1 + growth, i));  // mgmt fee, CPI-linked
       const netCashflow = annualRent - outgoings - interest;
       return {
         year,

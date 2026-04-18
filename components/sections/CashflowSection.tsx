@@ -227,14 +227,14 @@ export default function CashflowSection() {
             <YAxis tickFormatter={formatDollar} tick={{ fontSize: 11, fill: '#6B7280' }} width={60} />
             <Tooltip
               formatter={(value: number, name: string) => {
-                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Non-recoverable expenses', netCashflow: 'Net Cashflow' };
+                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Interest cost', netCashflow: 'Net Cashflow' };
                 return [`$${value.toLocaleString()}`, labels[name] ?? name];
               }}
               contentStyle={{ fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}
             />
             <Legend
               formatter={(value: string) => {
-                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Non-recoverable expenses', netCashflow: 'Net Cashflow (after loan)' };
+                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Interest cost', netCashflow: 'Net Cashflow' };
                 return labels[value] ?? value;
               }}
               wrapperStyle={{ fontSize: '0.8rem', paddingTop: '8px' }}

@@ -81,7 +81,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#1a2b3c',
+                backgroundColor: '#005151',   // commercialrealestate.com.au brand teal
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',
@@ -91,7 +91,7 @@ export default function FeaturesSection() {
                 flexShrink: 0,
               }}
             >
-              <span>All Photos &amp; Details on property.com.au</span>
+              <span>commercialrealestate.com.au</span>
               <span style={{ fontSize: '0.75rem' }}>&#8599;</span>
             </a>
           )}
@@ -104,7 +104,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#e0151b',
+                backgroundColor: '#e0151b',   // realcommercial.com.au brand red
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',
@@ -114,7 +114,7 @@ export default function FeaturesSection() {
                 flexShrink: 0,
               }}
             >
-              <span>realestate.com.au</span>
+              <span>realcommercial.com.au</span>
               <span style={{ fontSize: '0.75rem' }}>&#8599;</span>
             </a>
           )}

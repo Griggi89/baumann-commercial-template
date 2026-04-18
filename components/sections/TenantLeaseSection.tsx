@@ -6,7 +6,7 @@
 
 import { usePropertyData } from '@/lib/PropertyDataContext';
 
-const HIGHLIGHT_KEYS = ['WALE (yrs)', 'Tenant', 'Tenant Covenant', 'Lease Type', 'Lease Expiry'];
+const HIGHLIGHT_KEYS = ['Tenant', 'Occupancy', 'Tenant Covenant', 'Lease Type', 'WALE (yrs)', 'Lease Expiry'];
 
 export default function TenantLeaseSection() {
   const propertyData = usePropertyData();

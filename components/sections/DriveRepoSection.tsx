@@ -48,9 +48,9 @@ export default function DriveRepoSection() {
         </p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
-          {driveRepo.subfolders.map((f) => (
+          {driveRepo.subfolders.map((f, i) => (
             <a
-              key={f.url}
+              key={`${f.name}-${i}`}
               href={f.url}
               target="_blank"
               rel="noopener noreferrer"

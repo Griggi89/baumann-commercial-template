@@ -14,6 +14,7 @@ interface SidebarProps {
 
 const NAV_ITEMS: { id: string; label: string; badge?: string }[] = [
   { id: 'features',        label: 'Property Details' },
+  { id: 'summary',         label: 'Executive Summary' },
   { id: 'cashflow',        label: 'Cashflow' },
   { id: 'rental',          label: 'Rental Assessment' },
   { id: 'sales',           label: 'Sales Comparables' },

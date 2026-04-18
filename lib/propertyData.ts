@@ -75,11 +75,6 @@ export interface PropertyData {
     table: { headers: string[]; rows: string[][] };
   };
 
-  salesComparisons: {
-    salesTable: { headers: string[]; rows: string[][] };
-    rentTable:  { headers: string[]; rows: string[][] };
-  };
-
   location: {
     lat: number;
     lng: number;
@@ -196,11 +191,6 @@ export const defaultPropertyData: PropertyData = {
   salesComparables: {
     summary: [],
     table: { headers: [], rows: [] },
-  },
-
-  salesComparisons: {
-    salesTable: { headers: ['Address', 'Sale Price', '$/sqm', 'Cap Rate'], rows: [] },
-    rentTable:  { headers: ['Address', 'Area (sqm)', 'Rent $/sqm'],        rows: [] },
   },
 
   location: { lat: 0, lng: 0, mapBbox: '', distances: [] },

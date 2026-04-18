@@ -115,27 +115,66 @@ function mirrorCFCalcToSettings_(ss) {
   const review        = read(POPULATOR.CF.yearlyReview);
   const interestRate  = read(POPULATOR.CF.loanInterestRate);
 
+  // Annual Outgoings (to landlord) — under a triple-net lease the tenant pays
+  // most outgoings, but Property Management Fee remains. Compute as a dollar
+  // figure: mgmt fee % × gross rent. If the CF Calc uses a different model
+  // (e.g. gross lease), Chris can override Annual Outgoings in Settings.
+  const mgmtFeePct = typeof mgmtFee === 'number' && mgmtFee > 0 && mgmtFee < 1
+    ? mgmtFee
+    : 0;
+  const annualOutgoings = (typeof year1Rent === 'number' && year1Rent > 0)
+    ? Math.round(year1Rent * mgmtFeePct)
+    : 0;
+
+  // Fields mirrored from CF Calc (only written when Settings cell is empty,
+  // so user overrides stay).
   const fields = [
-    ['Purchase Price',        purchasePrice],
-    ['LVR',                   lvr],
-    ['Deposit',               deposit],
-    ['Stamp Duty',            stampDuty],
-    ['Valuation Cost',        valuation],
-    ['Solicitor Cost',        solicitor],
-    ['Building and Pest',     bnp],
-    ['Total Required',        totalCash],
+    ['Purchase Price',          purchasePrice],
+    ['LVR',                     lvr],
+    ['Deposit',                 deposit],
+    ['Stamp Duty',              stampDuty],
+    ['Valuation Cost',          valuation],
+    ['Solicitor Cost',          solicitor],
+    ['Building and Pest',       bnp],
+    ['Total Required',          totalCash],
     ['Property Management Fee', mgmtFee],
-    ['Net Annual Rent',       year1Rent],
-    ['Net Yield / Cap Rate',  netYield],
-    ['Rent Growth Rate',      review],
-    ['Interest Rate',         interestRate],
-    ['Loan Term Years',       30],
+    ['Net Annual Rent',         year1Rent],
+    ['Net Yield / Cap Rate',    netYield],
+    ['Rent Growth Rate',        review],
+    ['Interest Rate',           interestRate],
+    ['Annual Outgoings',        annualOutgoings],
   ];
 
   for (const [label, value] of fields) {
     if (value !== '' && value !== null && value !== undefined) {
       setSettingsValue_(settings, label, value);
     }
+  }
+
+  // Defaults — written only when the Settings row is missing/empty.
+  // These back the dashboard UI (e.g. the +10% Y1 uplift label).
+  const settingsMap = readSettingsAsMap_(settings);
+  const DEFAULTS = [
+    ['Year 1 Capital Growth Rate', 0.10],                // BPI convention
+    ['Capital Growth Rate',        0.08],                // BPI convention (ongoing)
+    ['Expense Growth Rate',        0.03],
+    ['Loan Term Years',            25],                  // commercial default
+    ['Suggested Questions',
+      "What's the cap rate? | What's the WALE? | What are the key risks? | How is rent reviewed?"],
+  ];
+  for (const [label, def] of DEFAULTS) {
+    if (!settingsMap[label]) setSettingsValue_(settings, label, def);
+  }
+
+  // Commercial-only placeholders — create empty Settings rows so Chris has
+  // a field to type into. Never overwrite a non-empty cell.
+  const COMMERCIAL_PLACEHOLDERS = [
+    'Tenant', 'Tenant Covenant', 'Lease Type', 'Lease Start', 'Lease Expiry',
+    'WALE (yrs)', 'Rent Review', 'Option Terms', 'Outgoings Recovery',
+    'NABERS Rating', 'GST', 'Parking Spaces',
+  ];
+  for (const label of COMMERCIAL_PLACEHOLDERS) {
+    if (!(label in settingsMap)) setSettingsValue_(settings, label, '');
   }
 
   // Equity projection: years 1..11 horizontal in CF Calc, rows 18..28, cols C..M (3..13)

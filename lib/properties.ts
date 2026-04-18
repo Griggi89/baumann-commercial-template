@@ -107,7 +107,12 @@ export async function fetchProperties(): Promise<PropertyEntry[]> {
       properties.push({
         slug: slug.trim(),
         sheetId: sheetId.trim(),
-        address: (address || '').trim(),
+        // Defensive trim — legacy Master Index rows created before the
+        // Apps Script fix (PR #2) carried trailing "--" on the address
+        // (input-path artefact). Strip any trailing whitespace/hyphens/
+        // underscores/commas/semicolons so the dashboard title and metadata
+        // render cleanly.
+        address: (address || '').trim().replace(/[\s\-_,;]+$/g, '').trim(),
         active: (active || '').trim().toUpperCase() !== 'FALSE',
         token: (token || '').trim(),
       });

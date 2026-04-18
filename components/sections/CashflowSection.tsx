@@ -78,6 +78,7 @@ export default function CashflowSection() {
   }, [cashflow.equityProjection]);
 
   const zeroCrossPercent = useMemo(() => {
+    if (chartData.length === 0) return 0;
     for (let i = 0; i < chartData.length - 1; i++) {
       const a = chartData[i].netCashflow;
       const b = chartData[i + 1].netCashflow;

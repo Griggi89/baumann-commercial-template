@@ -333,6 +333,61 @@ export default function CashflowSection() {
         </>
       )}
 
+      {/* Loan Amortization — mirrors the CF Calc 10-yr projection block.
+          Only renders when the populator has written the expanded schema
+          (interestPaid / principalRemaining etc. populated). Older sheets
+          on the 5-col schema won't show this block. */}
+      {cashflow.equityProjection.length > 0 &&
+       cashflow.equityProjection.some(r => r.interestPaid > 0 || r.principalRemaining > 0) && (
+        <>
+          <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4B5563', margin: '28px 0 14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Loan Amortization
+          </p>
+          <p style={{ fontSize: '0.78rem', color: '#9CA3AF', marginBottom: '14px' }}>
+            Interest, principal, and cash-on-cash return per year — matches the CF Calc 10-yr projection.
+            {cashflow.debtReductionPct != null && cashflow.debtReductionPct !== 1 && (
+              <> Debt reduction: <strong>{Math.round(cashflow.debtReductionPct * 100)}%</strong> of net cashflow directed at principal.</>
+            )}
+          </p>
+          <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflowX: 'auto', marginBottom: '12px' }}>
+            <table style={{ width: '100%', minWidth: '680px', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#2B3C50' }}>
+                  {['Year', 'Yearly Yield', 'Interest Paid', 'Principal Paid', 'Principal Remaining', 'Cash on Cash'].map(h => (
+                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cashflow.equityProjection.map((row, i) => (
+                  <tr
+                    key={row.year}
+                    style={{ borderBottom: i < cashflow.equityProjection.length - 1 ? '1px solid #F3F4F6' : 'none', backgroundColor: (i + 1) % 2 === 0 ? '#fff' : '#F9FAFB' }}
+                  >
+                    <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a2b3c' }}>Year {row.year}</td>
+                    <td style={{ padding: '10px 14px', color: '#374151' }}>{row.yearlyYield ? (row.yearlyYield * 100).toFixed(2) + '%' : '—'}</td>
+                    <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 500 }}>
+                      {row.interestPaid ? '-$' + Math.round(row.interestPaid).toLocaleString() : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: row.principalPaid < 0 ? '#EF4444' : '#22C55E', fontWeight: 500 }}>
+                      {row.principalPaid === 0
+                        ? '—'
+                        : (row.principalPaid < 0 ? '-$' : '$') + Math.abs(Math.round(row.principalPaid)).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: '#374151' }}>
+                      {row.principalRemaining ? '$' + Math.round(row.principalRemaining).toLocaleString() : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: row.cashOnCash < 0 ? '#EF4444' : '#22C55E', fontWeight: 600 }}>
+                      {row.cashOnCash ? (row.cashOnCash * 100).toFixed(2) + '%' : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {/* Upfront costs breakdown */}
       {cashflow.upfrontCosts.totalRequired > 0 && (
         <>

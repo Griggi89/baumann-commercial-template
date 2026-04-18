@@ -66,6 +66,7 @@ export const demoPropertyData: PropertyData = {
     year1CapitalGrowthRate: 0.03,
     expenseGrowthRate: 0.03,
     annualExpenses: 4_200,  // 7% of $60,000 (mgmt 5% + aux 2%)
+    debtReductionPct: 1.0,  // 100% of net cashflow directed at loan (CF default)
     expenseBreakdown: [
       { label: 'Property Management Fee + 2% aux (compliance / insurance)', annual: 4_200 },
     ],
@@ -80,26 +81,48 @@ export const demoPropertyData: PropertyData = {
       titleInsurance:     0,
       totalRequired:      252_000,
     },
-    equityProjection: Array.from({ length: 10 }, (_, i) => {
-      const year = i + 1;
+    equityProjection: (() => {
+      // Mirror of the CF Calc 10-year projection (see CF template).
+      // Principal paydown recurs year-to-year: Y+1 loan balance = Y loan
+      // balance − (netCF × debtReductionPct). Negative netCF grows the loan.
+      const purchase = 1_000_000;
+      const startLoan = 800_000;
+      const cashRequired = 252_000;
       const growth = 0.03;
-      const annualRent = Math.round(60_000 * Math.pow(1 + growth, i));
-      const propertyValue = Math.round(1_000_000 * Math.pow(1 + growth, i));
-      const loan = 800_000;  // 80% of $1M
-      const interest = loan * 0.08;
-      const outgoings = Math.round(annualRent * 0.07);  // mgmt + aux = 7% of rent
-      const netCashflow = annualRent - outgoings - interest;
-      return {
-        year,
-        rentalIncome: annualRent,
-        totalExpenses: outgoings + interest,
-        annualCashflow: netCashflow,
-        rentPerWeek: Math.round(annualRent / 52),
-        propertyValue,
-        netEquity: propertyValue - loan,
-        netCashflow,
-      };
-    }),
+      const rate = 0.08;
+      const mgmtPct = 0.07;
+      const debtRed = 1.0;
+
+      const rows = [];
+      let loanStart = startLoan;
+      for (let i = 0; i < 10; i++) {
+        const year = i + 1;
+        const rent = Math.round(60_000 * Math.pow(1 + growth, i));
+        const outgoings = Math.round(rent * mgmtPct);
+        const interest = Math.round(loanStart * rate);
+        const netCashflow = rent - outgoings - interest;
+        const principalPaid = Math.round(netCashflow * debtRed);
+        const principalRemaining = loanStart;
+        const propertyValue = Math.round(purchase * Math.pow(1 + growth, i));
+        rows.push({
+          year,
+          rentalIncome: rent,
+          totalExpenses: outgoings + interest,
+          annualCashflow: netCashflow,
+          rentPerWeek: Math.round(rent / 52),
+          propertyValue,
+          netEquity: propertyValue - loanStart,
+          netCashflow,
+          yearlyYield: rent / purchase,
+          interestPaid: interest,
+          principalPaid,
+          principalRemaining,
+          cashOnCash: netCashflow / cashRequired,
+        });
+        loanStart = loanStart - principalPaid;  // carry forward
+      }
+      return rows;
+    })(),
   },
 
   rentalAssessment: {

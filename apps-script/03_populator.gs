@@ -154,6 +154,7 @@ function mirrorCFCalcToSettings_(ss) {
   const netYield      = read('netYieldCap');
   const review        = read('yearlyReview');
   const interestRate  = read('loanInterestRate');
+  const debtReduction = read('netCashDebt');
 
   // Annual Outgoings (to landlord) — under a triple-net lease the tenant pays
   // most outgoings, but Property Management Fee remains. Compute as a dollar
@@ -183,6 +184,7 @@ function mirrorCFCalcToSettings_(ss) {
     ['Rent Growth Rate',        review],
     ['Interest Rate',           interestRate],
     ['Annual Outgoings',        annualOutgoings],
+    ['Debt Reduction Pct',      debtReduction],
   ];
 
   for (const [label, value] of fields) {
@@ -218,35 +220,55 @@ function mirrorCFCalcToSettings_(ss) {
   }
 
   // Equity projection — years 1..10 laid out horizontally in CF Calc.
-  // Year 1 lives in column C (=3), so year N is column (2+N). Row numbers
-  // for the rent / property value / equity / cashflow rows are resolved by
-  // label lookup (see POPULATOR.CF.labels) so template header shifts don't
-  // break this.
-  const rentRow     = findCFRowByLabel_(cf, labels.rent);
-  const propRow     = findCFRowByLabel_(cf, labels.propertyValue);
-  const equityRow   = findCFRowByLabel_(cf, labels.netEquity);
-  const cashflowRow = findCFRowByLabel_(cf, labels.netCashflow);
+  // Year 1 lives in column C (=3), so year N is column (2+N).
+  //
+  // Writes a 10-column tab that mirrors EVERY row in the CF Calc projection:
+  //   Year, Rent, Property Value, Net Equity, Net Cashflow,
+  //   Yearly Yield, Interest Paid, Principal Paid, Principal Remaining, Cash on Cash
+  //
+  // The dashboard's fetchSheetData reads cols 0–9 if present, or falls back
+  // to deriving Yearly Yield / Cash on Cash when a template is still on the
+  // old 5-col schema.
+  const rentRow       = findCFRowByLabel_(cf, labels.rent);
+  const propRow       = findCFRowByLabel_(cf, labels.propertyValue);
+  const equityRow     = findCFRowByLabel_(cf, labels.netEquity);
+  const cashflowRow   = findCFRowByLabel_(cf, labels.netCashflow);
+  const yieldRow      = findCFRowByLabel_(cf, labels.yield);
+  const interestRow   = findCFRowByLabel_(cf, labels.interestPaid);
+  const principalPaidRow      = findCFRowByLabel_(cf, labels.principalPaid);
+  const principalRemainingRow = findCFRowByLabel_(cf, labels.principalStart);
+  const returnOnCashRow       = findCFRowByLabel_(cf, labels.returnOnCash);
 
   if (rentRow && propRow && equityRow && cashflowRow) {
     const eqSheet = ss.getSheetByName('Equity Projection') || ss.insertSheet('Equity Projection');
     eqSheet.clear();
-    eqSheet.getRange(1, 1, 1, 5).setValues([['Year', 'Gross Annual Rent', 'Property Value', 'Net Equity', 'Net Cashflow']]);
+    const header = [
+      'Year', 'Gross Annual Rent', 'Property Value', 'Net Equity', 'Net Cashflow',
+      'Yearly Yield', 'Interest Paid', 'Principal Paid', 'Principal Remaining', 'Cash on Cash',
+    ];
+    eqSheet.getRange(1, 1, 1, header.length).setValues([header]);
+    const read_ = (row, col) => row ? cf.getRange(row, col).getValue() : '';
     const rows = [];
     for (let y = 1; y <= 10; y++) {
       const col = 2 + y;
       rows.push([
         y,
-        cf.getRange(rentRow,     col).getValue(),
-        cf.getRange(propRow,     col).getValue(),
-        cf.getRange(equityRow,   col).getValue(),
-        cf.getRange(cashflowRow, col).getValue(),
+        read_(rentRow,                col),
+        read_(propRow,                col),
+        read_(equityRow,              col),
+        read_(cashflowRow,            col),
+        read_(yieldRow,               col),
+        read_(interestRow,            col),
+        read_(principalPaidRow,       col),
+        read_(principalRemainingRow,  col),
+        read_(returnOnCashRow,        col),
       ]);
     }
-    eqSheet.getRange(2, 1, rows.length, 5).setValues(rows);
-    eqSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#0F2A44').setFontColor('#FFFFFF');
+    eqSheet.getRange(2, 1, rows.length, header.length).setValues(rows);
+    eqSheet.getRange(1, 1, 1, header.length).setFontWeight('bold').setBackground('#0F2A44').setFontColor('#FFFFFF');
     eqSheet.setFrozenRows(1);
   } else {
-    Logger.log('Equity Projection skipped — missing label rows ' +
+    Logger.log('Equity Projection skipped — missing core label rows ' +
       JSON.stringify({ rent: rentRow, prop: propRow, equity: equityRow, cashflow: cashflowRow }));
   }
 

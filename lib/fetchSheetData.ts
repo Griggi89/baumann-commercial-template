@@ -155,6 +155,7 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   data.cashflow.year1CapitalGrowthRate  = toNum(s['Year 1 Capital Growth Rate']);
   data.cashflow.expenseGrowthRate  = toNum(s['Expense Growth Rate']);
   data.cashflow.annualExpenses     = toNum(s['Annual Outgoings']) || toNum(s['Annual Expenses']);
+  data.cashflow.debtReductionPct   = toNum(s['Debt Reduction Pct']) || toNum(s['% Debt Reduction']) || 1;
 
   data.cashflow.upfrontCosts = {
     deposit:           toNum(s['Deposit']),
@@ -173,23 +174,44 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     .map(([k, v]) => ({ label: k.replace(/^(Outgoing: |Expense: )/, ''), annual: toNum(v) }));
 
   // Equity Projection: populator writes a dedicated "Equity Projection" tab.
-  // Schema: Year, Gross Annual Rent, Property Value, Net Equity, Net Cashflow
+  // Expanded schema (matches CF Calc 10-yr projection):
+  //   [0] Year
+  //   [1] Rent
+  //   [2] Property Value
+  //   [3] Net Equity
+  //   [4] Net Cashflow
+  //   [5] Yearly Yield           (decimal, e.g. 0.06)
+  //   [6] Interest Paid
+  //   [7] Principal Paid         (can be negative)
+  //   [8] Principal Remaining    (start-of-year loan balance)
+  //   [9] Cash on Cash           (decimal)
+  //
+  // Back-compat: older populators write only cols 0–4. When 5+ are absent,
+  // derive sensible defaults from cashflow inputs below.
   const eqTab = await fetchTab(sheetId, 'Equity Projection');
   if (eqTab.length > 1) {
+    const purchase = data.cashflow.purchasePrice;
+    const totalCash = data.cashflow.upfrontCosts.totalRequired;
     data.cashflow.equityProjection = eqTab.slice(1)
       .filter((r) => r[0] && !isNaN(Number(r[0])))
       .map((r) => {
         const rental = toNum(r[1]);
         const cashflow = toNum(r[4]);
+        const hasExpanded = r.length >= 10;
         return {
-          year:           toNum(r[0]),
-          rentalIncome:   rental,
-          totalExpenses:  Math.max(0, rental - cashflow),
-          annualCashflow: cashflow,
-          rentPerWeek:    Math.round(rental / 52),
-          propertyValue:  toNum(r[2]),
-          netEquity:      toNum(r[3]),
-          netCashflow:    cashflow,
+          year:               toNum(r[0]),
+          rentalIncome:       rental,
+          totalExpenses:      Math.max(0, rental - cashflow),
+          annualCashflow:     cashflow,
+          rentPerWeek:        Math.round(rental / 52),
+          propertyValue:      toNum(r[2]),
+          netEquity:          toNum(r[3]),
+          netCashflow:        cashflow,
+          yearlyYield:        hasExpanded ? toNum(r[5]) : (purchase ? rental / purchase : 0),
+          interestPaid:       hasExpanded ? toNum(r[6]) : 0,
+          principalPaid:      hasExpanded ? toNum(r[7]) : 0,
+          principalRemaining: hasExpanded ? toNum(r[8]) : 0,
+          cashOnCash:         hasExpanded ? toNum(r[9]) : (totalCash ? cashflow / totalCash : 0),
         };
       });
   }

@@ -39,6 +39,10 @@ export interface PropertyData {
     year1CapitalGrowthRate: number;
     expenseGrowthRate: number;
     annualExpenses: number;          // commercial: annual outgoings (if any to landlord)
+    // % of net cashflow diverted to principal paydown (0..1). Commercial
+    // CF Calc default = 1.0 (all positive CF pays down loan; negative CF
+    // capitalises back onto the loan).
+    debtReductionPct: number;
     expenseBreakdown: { label: string; annual: number }[];
     upfrontCosts: {
       deposit: number;
@@ -60,6 +64,12 @@ export interface PropertyData {
       propertyValue: number;
       netEquity: number;
       netCashflow: number;
+      // Amortization detail (matches the CF Calc 10-yr projection rows)
+      yearlyYield: number;           // rent ÷ purchase price (decimal)
+      interestPaid: number;          // annual interest $ at start-of-year balance
+      principalPaid: number;         // netCashflow × debtReductionPct (can be negative)
+      principalRemaining: number;    // loan balance at start of year
+      cashOnCash: number;            // netCashflow ÷ total cash required (decimal)
     }[];
   };
 
@@ -175,6 +185,7 @@ export const defaultPropertyData: PropertyData = {
     year1CapitalGrowthRate: 0,
     expenseGrowthRate: 0,
     annualExpenses: 0,
+    debtReductionPct: 1,
     expenseBreakdown: [],
     upfrontCosts: {
       deposit: 0, stampDuty: 0, gst: 0, conveyancing: 0,

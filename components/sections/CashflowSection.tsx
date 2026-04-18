@@ -57,7 +57,6 @@ export default function CashflowSection() {
   const loanAmount = (cashflow.purchasePrice ?? 0) * (cashflow.lvr ?? 0);
   const annualInterestOnly = loanAmount * (cashflow.interestRate ?? 0);
   const netAnnualCashflow = (cashflow.annualRent ?? 0) - (cashflow.annualExpenses ?? 0) - annualInterestOnly;
-  const weeklyShortfall = netAnnualCashflow / 52;
   const grossYieldPct = cashflow.purchasePrice ? ((cashflow.annualRent / cashflow.purchasePrice) * 100).toFixed(2) : '0.00';
   const netYieldPct = cashflow.purchasePrice ? (((cashflow.annualRent - cashflow.annualExpenses - annualInterestOnly) / cashflow.purchasePrice) * 100).toFixed(2) : '0.00';
 
@@ -151,12 +150,12 @@ export default function CashflowSection() {
       {/* Summary cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '32px' }}>
         <SummaryCard label="Purchase Price (est.)" value={`$${cashflow.purchasePrice.toLocaleString()}`} />
-        <SummaryCard label="Weekly Rent (est.)" value={`$${Math.round(cashflow.annualRent / 52)} pw`} sub="Per rental appraisal" />
+        <SummaryCard label="Net Annual Rent (est.)" value={`$${Math.round(cashflow.annualRent).toLocaleString()}`} sub="From rental appraisal" />
         <SummaryCard label="Gross Yield (est.)" value={`${grossYieldPct}%`} sub="Annual rent ÷ price" />
-        <SummaryCard label="Net Yield (est.)" value={`${netYieldPct}%`} sub="After all expenses incl. interest" />
+        <SummaryCard label="Net Yield / Cap Rate (est.)" value={`${netYieldPct}%`} sub="After all expenses incl. interest" />
         <div style={{ flex: '1 1 160px', position: 'relative' }}>
-          <SummaryCard label="Weekly Shortfall (est.)" value={`${weeklyShortfall < 0 ? '-' : ''}$${Math.abs(weeklyShortfall).toFixed(0)} pw`} sub="Cost to hold property" valueColor={weeklyShortfall < 0 ? '#EF4444' : undefined} />
-          {weeklyShortfall < 0 && (
+          <SummaryCard label="Year 1 Net Cashflow (est.)" value={`${netAnnualCashflow < 0 ? '-' : ''}$${Math.abs(netAnnualCashflow).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="Rent less interest & outgoings, pre-tax" valueColor={netAnnualCashflow < 0 ? '#EF4444' : undefined} />
+          {netAnnualCashflow < 0 && (
             <div
               className="shortfall-tooltip-trigger"
               style={{

@@ -1,13 +1,26 @@
 'use client';
 
-// Property Details
-// Uses Google Maps Embed API (satellite view) + REA link for listing photos
+// Property Details — commercial
+// Hero image + listing link + commercial-relevant attributes.
 
 import { usePropertyData } from '@/lib/PropertyDataContext';
 
-const CLIENT_FIELDS = ['Bedrooms', 'Bathrooms', 'Car Spaces', 'Floor Area', 'Land Area'];
+// Commercial attributes shown as summary cards. Residential-only fields
+// (Bedrooms / Bathrooms / Car Spaces) are intentionally excluded — they
+// won't render even if the CF template has those rows.
+const CLIENT_FIELDS = [
+  'Property Type',
+  'Building Area',     // matches "Building Area (sqm)"
+  'Floor Area',        // matches "Floor Area (sqm)"
+  'Land Area',         // matches "Land Area (sqm)"
+  'Zoning',
+  'Parking Spaces',
+  'NABERS Rating',
+  'Year Built',
+  'Tenancy Count',
+];
 
-/** Upgrade REA CDN image URLs to high resolution (1600x900) */
+/** Upgrade listing-portal CDN image URLs to high resolution (1600x900) */
 function hiResImage(url: string): string {
   if (!url) return url;
   return url.replace(/\/\d+x\d+-crop/, '/1600x900-crop');

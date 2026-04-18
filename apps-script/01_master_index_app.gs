@@ -69,10 +69,12 @@ function onOpen() {
 }
 
 function showDealManager() {
+  // Modal dialog (front-and-center), matching the residential Deal Manager.
+  // Sidebar mode felt cramped; 620×700 gives the 3-step flow room to breathe.
   const html = HtmlService.createHtmlOutputFromFile('DealManager')
-    .setTitle('BPI Commercial — Deal Manager')
-    .setWidth(420);
-  SpreadsheetApp.getUi().showSidebar(html);
+    .setWidth(620)
+    .setHeight(700);
+  SpreadsheetApp.getUi().showModalDialog(html, 'BPI Commercial — Deal Manager');
 }
 
 

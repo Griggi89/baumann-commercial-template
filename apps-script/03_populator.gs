@@ -22,40 +22,71 @@
  */
 
 const POPULATOR = {
-  // Cash FLow Calc cell positions (column C = 3, 1-based rows)
   CF: {
-    col:               3,
-    purchasePrice:     2,
-    lvr:               3,
-    totalLoan:         4,
-    deposit:           5,
-    stampDuty:         6,
-    valuation:         7,
-    solicitor:         8,
-    buildingInspection: 9,
-    totalCashRequired: 10,
-    mgmtFee:           11,
-    year1NetRent:      12,
-    netYieldCap:       13,
-    yearlyReview:      14,
-    termOwnership:     15,
-    loanInterestRate:  16,
-    netCashDebt:       17,
-    // Horizontal 10-yr table:
-    yearRow:           18, // RENT label in col B (col A), year values across col C..L
-    rent:              18,
-    yield:             19,
-    interestPaid:      20,
-    netCashflow:       21,
-    returnOnCash:      22,
-    principalStart:    23,
-    principalPaid:     24,
-    remainingDebt:     25,
-    propertyValue:     26,
-    netEquity:         27,
-    equityGainPct:     28,
+    // Values live in column C (=3) of the Cash FLow Calc sheet.
+    // Row numbers are LOOKED UP by label in column B at runtime via
+    // findCFRowByLabel_() — the template has a variable number of header
+    // rows, so hardcoding rows breaks the moment anyone edits the header.
+    // The labels below are matched case-sensitively against col B, trimmed.
+    col: 3,
+    labels: {
+      purchasePrice:      'Purchase price',
+      lvr:                'LVR',
+      totalLoan:          'Total Loan $',
+      deposit:            'Deposit $',
+      stampDuty:          'Stamp duty (if outside South Australia)',
+      valuation:          'Valuation cost',
+      solicitor:          'Solicitor cost',
+      buildingInspection: 'Building Inspection',
+      totalCashRequired:  'Total cash/equity required',
+      // mgmtFee label spans two lines in the template ("Property Management
+      // Fee + 2% for \naux cost like compliance/insurance etc") — we match
+      // by `includes` in the label lookup, not exact.
+      mgmtFee:            'Property Management Fee',
+      year1NetRent:       'Year 1 Net Rental Income',
+      netYieldCap:        'Net Yield / Cap Rate',
+      yearlyReview:       'Yearly review / CPI increase',
+      termOwnership:      'Term of ownership',
+      loanInterestRate:   'Loan interest rate',
+      netCashDebt:        '% of net cash flow used for debt reduction',
+      // 10-year horizontal rows — matched by `includes` to tolerate the
+      // trailing space on "Rent " and multi-line labels like
+      // "Net Cash flow (rent less interest - property mgmt/aux)".
+      rent:               'Rent',
+      yield:              'Yearly yield',
+      interestPaid:       'Interest paid',
+      netCashflow:        'Net Cash flow',
+      returnOnCash:       'Return on cash',
+      principalStart:     'Principal remaining',
+      principalPaid:      'Principal paid',
+      remainingDebt:      'Remaining Debt',
+      propertyValue:      'Property Value at beginning',
+      netEquity:          'Net Equity',
+      equityGainPct:      'Equity gain',
+    },
   },
 };
+
+/**
+ * Find a row in the Cash FLow Calc sheet by matching a label substring
+ * in column B. Returns 1-based row number, or null if not found.
+ *
+ * Uses `includes` (case-insensitive, trimmed) — more tolerant than exact
+ * match because the template has multi-line labels and trailing whitespace
+ * in several cells. If a label is ambiguous (matches multiple rows),
+ * returns the first match.
+ */
+function findCFRowByLabel_(cfSheet, labelSubstring) {
+  const last = cfSheet.getLastRow();
+  if (last < 1) return null;
+  const colB = cfSheet.getRange(1, 2, last, 1).getValues();
+  const needle = String(labelSubstring).toLowerCase().trim();
+  for (let i = 0; i < colB.length; i++) {
+    const cell = String(colB[i][0] || '').toLowerCase().trim();
+    if (cell && cell.indexOf(needle) !== -1) return i + 1;
+  }
+  return null;
+}
 
 
 // ─── ENTRY: called from runPipeline ─────────────────────────────────────────
@@ -99,21 +130,30 @@ function mirrorCFCalcToSettings_(ss) {
   if (!cf || !settings) return false;
 
   const c = POPULATOR.CF.col;
-  const read = (row) => cf.getRange(row, c).getValue();
+  const labels = POPULATOR.CF.labels;
 
-  const purchasePrice = read(POPULATOR.CF.purchasePrice);
-  const lvr           = read(POPULATOR.CF.lvr);
-  const deposit       = read(POPULATOR.CF.deposit);
-  const stampDuty     = read(POPULATOR.CF.stampDuty);
-  const valuation     = read(POPULATOR.CF.valuation);
-  const solicitor     = read(POPULATOR.CF.solicitor);
-  const bnp           = read(POPULATOR.CF.buildingInspection);
-  const totalCash     = read(POPULATOR.CF.totalCashRequired);
-  const mgmtFee       = read(POPULATOR.CF.mgmtFee);
-  const year1Rent     = read(POPULATOR.CF.year1NetRent);
-  const netYield      = read(POPULATOR.CF.netYieldCap);
-  const review        = read(POPULATOR.CF.yearlyReview);
-  const interestRate  = read(POPULATOR.CF.loanInterestRate);
+  // Resolve each label to its actual row at runtime. Returns undefined if
+  // the label isn't found — read() below handles that as "skip this field".
+  const rowOf = (key) => findCFRowByLabel_(cf, labels[key]);
+  const read  = (key) => {
+    const row = rowOf(key);
+    if (!row) return undefined;
+    return cf.getRange(row, c).getValue();
+  };
+
+  const purchasePrice = read('purchasePrice');
+  const lvr           = read('lvr');
+  const deposit       = read('deposit');
+  const stampDuty     = read('stampDuty');
+  const valuation     = read('valuation');
+  const solicitor     = read('solicitor');
+  const bnp           = read('buildingInspection');
+  const totalCash     = read('totalCashRequired');
+  const mgmtFee       = read('mgmtFee');
+  const year1Rent     = read('year1NetRent');
+  const netYield      = read('netYieldCap');
+  const review        = read('yearlyReview');
+  const interestRate  = read('loanInterestRate');
 
   // Annual Outgoings (to landlord) — under a triple-net lease the tenant pays
   // most outgoings, but Property Management Fee remains. Compute as a dollar
@@ -177,22 +217,38 @@ function mirrorCFCalcToSettings_(ss) {
     if (!(label in settingsMap)) setSettingsValue_(settings, label, '');
   }
 
-  // Equity projection: years 1..11 horizontal in CF Calc, rows 18..28, cols C..M (3..13)
-  const eqSheet = ss.getSheetByName('Equity Projection') || ss.insertSheet('Equity Projection');
-  eqSheet.clear();
-  eqSheet.getRange(1, 1, 1, 5).setValues([['Year', 'Gross Annual Rent', 'Property Value', 'Net Equity', 'Net Cashflow']]);
-  const rows = [];
-  for (let y = 1; y <= 10; y++) {
-    const col = 2 + y; // C=3 is year 1
-    const rent    = cf.getRange(POPULATOR.CF.rent,          col).getValue();
-    const propVal = cf.getRange(POPULATOR.CF.propertyValue, col).getValue();
-    const equity  = cf.getRange(POPULATOR.CF.netEquity,     col).getValue();
-    const cashflow = cf.getRange(POPULATOR.CF.netCashflow,  col).getValue();
-    rows.push([y, rent, propVal, equity, cashflow]);
+  // Equity projection — years 1..10 laid out horizontally in CF Calc.
+  // Year 1 lives in column C (=3), so year N is column (2+N). Row numbers
+  // for the rent / property value / equity / cashflow rows are resolved by
+  // label lookup (see POPULATOR.CF.labels) so template header shifts don't
+  // break this.
+  const rentRow     = findCFRowByLabel_(cf, labels.rent);
+  const propRow     = findCFRowByLabel_(cf, labels.propertyValue);
+  const equityRow   = findCFRowByLabel_(cf, labels.netEquity);
+  const cashflowRow = findCFRowByLabel_(cf, labels.netCashflow);
+
+  if (rentRow && propRow && equityRow && cashflowRow) {
+    const eqSheet = ss.getSheetByName('Equity Projection') || ss.insertSheet('Equity Projection');
+    eqSheet.clear();
+    eqSheet.getRange(1, 1, 1, 5).setValues([['Year', 'Gross Annual Rent', 'Property Value', 'Net Equity', 'Net Cashflow']]);
+    const rows = [];
+    for (let y = 1; y <= 10; y++) {
+      const col = 2 + y;
+      rows.push([
+        y,
+        cf.getRange(rentRow,     col).getValue(),
+        cf.getRange(propRow,     col).getValue(),
+        cf.getRange(equityRow,   col).getValue(),
+        cf.getRange(cashflowRow, col).getValue(),
+      ]);
+    }
+    eqSheet.getRange(2, 1, rows.length, 5).setValues(rows);
+    eqSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#0F2A44').setFontColor('#FFFFFF');
+    eqSheet.setFrozenRows(1);
+  } else {
+    Logger.log('Equity Projection skipped — missing label rows ' +
+      JSON.stringify({ rent: rentRow, prop: propRow, equity: equityRow, cashflow: cashflowRow }));
   }
-  eqSheet.getRange(2, 1, rows.length, 5).setValues(rows);
-  eqSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#0F2A44').setFontColor('#FFFFFF');
-  eqSheet.setFrozenRows(1);
 
   return true;
 }

@@ -77,3 +77,4 @@
 2026-04-18T16:43:59+10:00 no new
 2026-04-18T16:48:57+10:00 no new
 2026-04-18T17:01:40+10:00 shipped eb2e8b5 + status msg: root page, deploy button, VERCEL-DEPLOY.md, APPS-SCRIPT-SYNC.md, demo fixture
+2026-04-18T17:54:24+10:00 shipped PR #4 (7c5d402) + PR #5 (29df6f5); /deals/ now 200 on Vercel; posted gym-session-summary

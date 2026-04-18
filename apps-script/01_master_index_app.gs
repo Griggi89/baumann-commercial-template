@@ -115,6 +115,18 @@ function createCommercialDeal(address) {
   const cfSheetId = cfCopy.getId();
   const cfSheetUrl = cfCopy.getUrl();
 
+  // 3a. Make the copy anyone-with-link viewable so the Vercel dashboard
+  //     can read it via gviz. Without this Google returns a 307 login
+  //     redirect and the dashboard renders empty / 500s. The property
+  //     folder is also shared so Drive Repo + DD file links resolve for
+  //     anyone visiting the dashboard.
+  try {
+    cfCopy.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    propFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (e) {
+    Logger.log('Could not set sharing on CF copy / folder: ' + e.message);
+  }
+
   // 4. Seed the CF Settings tab with address + DD folder URL
   try {
     const ss = SpreadsheetApp.openById(cfSheetId);

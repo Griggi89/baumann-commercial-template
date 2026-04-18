@@ -6,9 +6,18 @@ depends on or modifies the residential codebase.
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGriggi89%2Fbaumann-commercial-template&env=COMMERCIAL_MASTER_INDEX_SHEET_ID,ANTHROPIC_API_KEY&envDescription=COMMERCIAL_MASTER_INDEX_SHEET_ID%20is%20the%20sheet%20ID%20of%20the%20%22BPI%20COMMERCIAL%20-%20MASTER%20Index%20App%22%20sheet.%20ANTHROPIC_API_KEY%20powers%20the%20Ask%20ChristAIn%20chat.&project-name=baumann-commercial-template&repository-name=baumann-commercial-template)
+Go to [vercel.com/new](https://vercel.com/new), import this repo from the
+"Import Git Repository" list, and set two environment variables during
+setup:
+
+- `COMMERCIAL_MASTER_INDEX_SHEET_ID` — Master Index sheet ID
+- `ANTHROPIC_API_KEY` — powers Ask ChristAIn
 
 Full walkthrough: [`VERCEL-DEPLOY.md`](./VERCEL-DEPLOY.md).
+
+> Note: don't use the "Deploy with Vercel" button pattern — it triggers a
+> template-clone flow that tries to create a new GitHub repo of the same
+> name and fails. Import the existing repo instead.
 
 ## Contents
 

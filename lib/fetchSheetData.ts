@@ -98,7 +98,18 @@ function toSettingsMap(rows: string[][]): Record<string, string> {
 
 export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
   if (!sheetId) return defaultPropertyData;
+  try {
+    return await _fetchSheetDataUnsafe(sheetId);
+  } catch (err) {
+    // Never 500 the dashboard over a sheet-fetch or mapping error —
+    // degrade to defaultPropertyData so the route still renders. Log
+    // for Vercel function logs.
+    console.error('[fetchSheetData] error, returning defaults:', err);
+    return defaultPropertyData;
+  }
+}
 
+async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   const [
     settingsRows, cashflowRows, rentalRows, salesRows,
     ddRows, industriesRows, infraRows, distancesRows,

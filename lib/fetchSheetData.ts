@@ -140,7 +140,8 @@ export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
   data.cashflow.loanTermYears      = toNum(s['Loan Term Years']) || 30;
   data.cashflow.annualRent         = toNum(s['Net Annual Rent']) || toNum(s['Annual Rent']);
   data.cashflow.rentGrowthRate     = toNum(s['Rent Growth Rate']);
-  data.cashflow.capitalGrowthRate  = toNum(s['Capital Growth Rate']);
+  data.cashflow.capitalGrowthRate       = toNum(s['Capital Growth Rate']);
+  data.cashflow.year1CapitalGrowthRate  = toNum(s['Year 1 Capital Growth Rate']);
   data.cashflow.expenseGrowthRate  = toNum(s['Expense Growth Rate']);
   data.cashflow.annualExpenses     = toNum(s['Annual Outgoings']) || toNum(s['Annual Expenses']);
 
@@ -220,9 +221,6 @@ export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
     }
     data.salesComparables.summary = summary;
     data.salesComparables.table = { headers, rows: tblRows };
-    if (tblRows.length > 0) {
-      data.salesComparisons.salesTable = { headers, rows: tblRows };
-    }
   }
 
   // ── Lease & Tenant Insights (from Settings) ───────────────────────────────

@@ -57,8 +57,10 @@ export default function CashflowSection() {
   const loanAmount = (cashflow.purchasePrice ?? 0) * (cashflow.lvr ?? 0);
   const annualInterestOnly = loanAmount * (cashflow.interestRate ?? 0);
   const netAnnualCashflow = (cashflow.annualRent ?? 0) - (cashflow.annualExpenses ?? 0) - annualInterestOnly;
-  const grossYieldPct = cashflow.purchasePrice ? ((cashflow.annualRent / cashflow.purchasePrice) * 100).toFixed(2) : '0.00';
-  const netYieldPct = cashflow.purchasePrice ? (((cashflow.annualRent - cashflow.annualExpenses - annualInterestOnly) / cashflow.purchasePrice) * 100).toFixed(2) : '0.00';
+  // In commercial under a triple-net lease, "Net Yield / Cap Rate" = net
+  // rent ÷ price (tenant pays outgoings, so there's no "gross" distinction).
+  // `annualRent` on the PropertyData is already the NET rent.
+  const netYieldPct = cashflow.purchasePrice ? ((cashflow.annualRent / cashflow.purchasePrice) * 100).toFixed(2) : '0.00';
 
   // Chart data sourced from Equity Projection tab (CF Sheet → Deal Sheet → Dashboard)
   const chartData = useMemo(() => {
@@ -152,66 +154,14 @@ export default function CashflowSection() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '32px' }}>
         <SummaryCard label="Purchase Price (est.)" value={`$${cashflow.purchasePrice.toLocaleString()}`} />
         <SummaryCard label="Net Annual Rent (est.)" value={`$${Math.round(cashflow.annualRent).toLocaleString()}`} sub="From rental appraisal" />
-        <SummaryCard label="Gross Yield (est.)" value={`${grossYieldPct}%`} sub="Annual rent ÷ price" />
-        <SummaryCard label="Net Yield / Cap Rate (est.)" value={`${netYieldPct}%`} sub="After all expenses incl. interest" />
-        <div style={{ flex: '1 1 160px', position: 'relative' }}>
-          <SummaryCard label="Year 1 Net Cashflow (est.)" value={`${netAnnualCashflow < 0 ? '-' : ''}$${Math.abs(netAnnualCashflow).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="Rent less interest & outgoings, pre-tax" valueColor={netAnnualCashflow < 0 ? '#EF4444' : undefined} />
-          {netAnnualCashflow < 0 && (
-            <div
-              className="shortfall-tooltip-trigger"
-              style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  backgroundColor: '#F3F4F6',
-                  border: '1px solid #D1D5DB',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'help',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  color: '#6B7280',
-                }}
-              >
-                ?
-              </div>
-              <div
-                className="shortfall-tooltip-content"
-                style={{
-                  display: 'none',
-                  position: 'absolute',
-                  top: '28px',
-                  right: '0',
-                  width: '260px',
-                  padding: '10px 12px',
-                  backgroundColor: '#1F2937',
-                  color: '#F9FAFB',
-                  fontSize: '0.75rem',
-                  lineHeight: '1.4',
-                  borderRadius: '6px',
-                  zIndex: 50,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                }}
-              >
-                {`We hope to offset this loss via capital growth of ~${cashflow.capitalGrowthRate ? (cashflow.capitalGrowthRate * 100).toFixed(0) : '8'}% p.a.`}
-              </div>
-              <style jsx>{`
-                .shortfall-tooltip-trigger:hover .shortfall-tooltip-content {
-                  display: block !important;
-                }
-              `}</style>
-            </div>
-          )}
-        </div>
-        <SummaryCard label="Total Cash Required (est.)" value={`$${(cashflow.upfrontCosts.totalRequired / 1000).toFixed(0)}k`} sub="Deposit + costs" />
+        <SummaryCard label="Net Yield / Cap Rate (est.)" value={`${netYieldPct}%`} sub="Net rent ÷ purchase price (triple net)" />
+        <SummaryCard
+          label="Total Cash Required (est.)"
+          value={`$${(cashflow.upfrontCosts.totalRequired / 1000).toFixed(0)}k`}
+          sub={cashflow.purchasePrice
+            ? `${Math.round(cashflow.upfrontCosts.totalRequired / cashflow.purchasePrice * 100)}% of purchase price`
+            : 'Deposit + costs'}
+        />
       </div>
 
       {/* Expense breakdown */}
@@ -240,7 +190,7 @@ export default function CashflowSection() {
               </div>
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: '#374151', padding: '9px 0', borderBottom: '1px solid #E5E7EB' }}>
-              <span style={{ color: '#6B7280' }}>Interest (IO @ {cashflow.interestRate * 100}%)</span>
+              <span style={{ color: '#6B7280' }}>Interest (IO @ {(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}%)</span>
               <span style={{ fontWeight: 600 }}>${Math.round(annualInterestOnly).toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: '#374151', padding: '10px 0 0 0' }}>
@@ -277,14 +227,14 @@ export default function CashflowSection() {
             <YAxis tickFormatter={formatDollar} tick={{ fontSize: 11, fill: '#6B7280' }} width={60} />
             <Tooltip
               formatter={(value: number, name: string) => {
-                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Annual Expenses', netCashflow: 'Net Cashflow' };
+                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Non-recoverable expenses', netCashflow: 'Net Cashflow' };
                 return [`$${value.toLocaleString()}`, labels[name] ?? name];
               }}
               contentStyle={{ fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}
             />
             <Legend
               formatter={(value: string) => {
-                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Annual Expenses', netCashflow: 'Net Cashflow (after loan)' };
+                const labels: Record<string, string> = { rentalIncome: 'Rental Income', expenses: 'Non-recoverable expenses', netCashflow: 'Net Cashflow (after loan)' };
                 return labels[value] ?? value;
               }}
               wrapperStyle={{ fontSize: '0.8rem', paddingTop: '8px' }}
@@ -317,9 +267,9 @@ export default function CashflowSection() {
           }}
         >
           <strong style={{ color: '#374151' }}>Assumptions:</strong>{' '}
-          Purchase ${cashflow.purchasePrice.toLocaleString()}, LVR {cashflow.lvr * 100}%, interest-only at {cashflow.interestRate * 100}% p.a.,
-          rent ${cashflow.annualRent.toLocaleString()}/yr growing {cashflow.rentGrowthRate * 100}%/yr,
-          operating expenses ${cashflow.annualExpenses.toLocaleString()}/yr growing {((cashflow.expenseGrowthRate ?? 0.03) * 100).toFixed(0)}%/yr (inflation), IO interest fixed.
+          Purchase ${cashflow.purchasePrice.toLocaleString()}, LVR {(cashflow.lvr * 100).toFixed(0)}%, interest-only at {(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% p.a.,
+          rent ${cashflow.annualRent.toLocaleString()}/yr growing {(cashflow.rentGrowthRate * 100).toFixed(1).replace(/\.0$/, '')}%/yr,
+          non-recoverable expenses ${cashflow.annualExpenses.toLocaleString()}/yr growing {((cashflow.expenseGrowthRate ?? 0.03) * 100).toFixed(0)}%/yr (CPI), IO interest fixed.
         </div>
       </div>}
 
@@ -338,15 +288,15 @@ export default function CashflowSection() {
                 <tr style={{ backgroundColor: '#2B3C50' }}>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Year</th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>
-                    Rent / Wk
-                    {cashflow.rentGrowthRate > 0 && <span style={{ color: '#f2d82d', fontWeight: 500, marginLeft: 6 }}>(+{(cashflow.rentGrowthRate * 100).toFixed(0)}% p.a.)</span>}
+                    Rent / Yr
+                    {cashflow.rentGrowthRate > 0 && <span style={{ color: '#f2d82d', fontWeight: 500, marginLeft: 6 }}>
+                      (CPI {(cashflow.rentGrowthRate * 100).toFixed(1).replace(/\.0$/, '')}% p.a.)
+                    </span>}
                   </th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>
                     Property Value
-                    {cashflow.capitalGrowthRate > 0 && <span style={{ color: '#f2d82d', fontWeight: 500, marginLeft: 6 }}>
-                      {cashflow.year1CapitalGrowthRate && cashflow.year1CapitalGrowthRate !== cashflow.capitalGrowthRate
-                        ? `(+${(cashflow.year1CapitalGrowthRate * 100).toFixed(0)}% Y1, +${(cashflow.capitalGrowthRate * 100).toFixed(0)}% p.a. ongoing)`
-                        : `(+${(cashflow.capitalGrowthRate * 100).toFixed(0)}% p.a.)`}
+                    {cashflow.rentGrowthRate > 0 && <span style={{ color: '#f2d82d', fontWeight: 500, marginLeft: 6 }}>
+                      (tracks CPI / rent review)
                     </span>}
                   </th>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Net Equity</th>
@@ -370,7 +320,7 @@ export default function CashflowSection() {
                     style={{ borderBottom: i < cashflow.equityProjection.length - 1 ? '1px solid #F3F4F6' : 'none', backgroundColor: (i + 1) % 2 === 0 ? '#fff' : '#F9FAFB' }}
                   >
                     <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a2b3c' }}>Year {row.year}</td>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>${Math.round(row.rentPerWeek)}</td>
+                    <td style={{ padding: '10px 14px', color: '#374151' }}>${Math.round(row.rentalIncome).toLocaleString()}</td>
                     <td style={{ padding: '10px 14px', color: '#374151' }}>${row.propertyValue.toLocaleString()}</td>
                     <td style={{ padding: '10px 14px', color: '#22C55E', fontWeight: 600 }}>${row.netEquity.toLocaleString()}</td>
                     <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 600 }}>{row.netCashflow < 0 ? `-$${Math.abs(row.netCashflow).toLocaleString()}` : `$${row.netCashflow.toLocaleString()}`}</td>

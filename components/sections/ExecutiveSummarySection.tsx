@@ -42,7 +42,7 @@ function lookingRemaining(leaseExpiry: string): string {
   return `${years} yr ${remMonths} mo remaining`;
 }
 
-function HeadlineCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function HeadlineCard({ label, value, sub, accent, valueColor }: { label: string; value: string; sub?: string; accent?: boolean; valueColor?: string }) {
   return (
     <div
       style={{
@@ -67,7 +67,7 @@ function HeadlineCard({ label, value, sub, accent }: { label: string; value: str
       <p style={{
         fontSize: '1.6rem',
         fontWeight: 700,
-        color: accent ? '#F2D82D' : '#1a2b3c',
+        color: valueColor ?? (accent ? '#F2D82D' : '#1a2b3c'),
         margin: 0,
         lineHeight: 1.15,
       }}>
@@ -113,10 +113,12 @@ export default function ExecutiveSummarySection() {
     ? cashflow.annualRent / cashflow.purchasePrice
     : 0;
 
-  const wale = findItem(tenantLease.items, 'WALE (yrs)');
+  // Year 1 net cashflow = rent − outgoings − interest (IO)
+  const year1Interest = (cashflow.purchasePrice ?? 0) * (cashflow.lvr ?? 0) * (cashflow.interestRate ?? 0);
+  const year1NetCashflow = (cashflow.annualRent ?? 0) - (cashflow.annualExpenses ?? 0) - year1Interest;
+
   const tenant = findItem(tenantLease.items, 'Tenant');
   const covenant = findItem(tenantLease.items, 'Tenant Covenant');
-  const leaseType = findItem(tenantLease.items, 'Lease Type');
   const leaseExpiry = findItem(tenantLease.items, 'Lease Expiry') || '';
   const rentReview = findItem(tenantLease.items, 'Rent Review');
   const optionTerms = findItem(tenantLease.items, 'Option Terms');
@@ -148,8 +150,13 @@ export default function ExecutiveSummarySection() {
 
       {hasAnyData && (
         <>
-          {/* Headline cards — the 4 numbers that matter most */}
+          {/* Headline cards — Chris's sequence: price → cap rate → Y1 cashflow → cash required */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+            <HeadlineCard
+              label="Purchase Price"
+              value={fmtMoney(cashflow.purchasePrice)}
+              sub={cashflow.lvr ? `${Math.round(cashflow.lvr * 100)}% LVR` : undefined}
+            />
             <HeadlineCard
               label="Net Yield / Cap Rate"
               value={capRate ? fmtPct(capRate, 2) : '—'}
@@ -159,19 +166,23 @@ export default function ExecutiveSummarySection() {
               accent
             />
             <HeadlineCard
-              label="WALE"
-              value={wale ? wale + ' yrs' : '—'}
-              sub={leaseExpiry ? `Expiry ${leaseExpiry}` : undefined}
+              label="Year 1 Net Cashflow"
+              value={cashflow.purchasePrice
+                ? (year1NetCashflow < 0 ? '−' : '') + fmtMoney(Math.abs(year1NetCashflow))
+                : '—'}
+              sub={cashflow.interestRate
+                ? `After ${(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% interest (IO)`
+                : undefined}
+              valueColor={cashflow.purchasePrice
+                ? (year1NetCashflow < 0 ? '#EF4444' : '#22C55E')
+                : undefined}
             />
             <HeadlineCard
-              label="Net Annual Rent"
-              value={fmtMoney(cashflow.annualRent)}
-              sub={leaseType || undefined}
-            />
-            <HeadlineCard
-              label="Purchase Price"
-              value={fmtMoney(cashflow.purchasePrice)}
-              sub={cashflow.lvr ? `${Math.round(cashflow.lvr * 100)}% LVR` : undefined}
+              label="Cash Required"
+              value={fmtMoney(cashflow.upfrontCosts?.totalRequired ?? 0)}
+              sub={cashflow.purchasePrice && cashflow.upfrontCosts?.totalRequired
+                ? `${Math.round((cashflow.upfrontCosts.totalRequired / cashflow.purchasePrice) * 100)}% of price`
+                : undefined}
             />
           </div>
 

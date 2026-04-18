@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root {
+      --navy: #0F2A44;
+      --yellow: #F2D82D;
+      --blue: #2563EB;
+      --gray-50: #F8FAFC;
+      --gray-200: #E5E7EB;
+      --gray-400: #9CA3AF;
+      --gray-700: #374151;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #fff;
+      color: var(--gray-700);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    h1 {
+      font-size: 1.125rem;
+      color: var(--navy);
+      margin: 0 0 4px;
+      font-weight: 700;
+    }
+    .tagline {
+      color: var(--gray-400);
+      font-size: 0.8125rem;
+      margin-bottom: 20px;
+    }
+    .step {
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-weight: 600;
+      color: var(--navy);
+      font-size: 0.9375rem;
+    }
+    .step-desc {
+      color: var(--gray-400);
+      font-size: 0.8125rem;
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      color: var(--gray-700);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--navy);
+      box-shadow: 0 0 0 2px rgba(15, 42, 68, 0.1);
+    }
+    button {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: opacity 0.15s ease;
+    }
+    button:hover { opacity: 0.92; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-blue    { background: var(--blue); color: #fff; }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--gray-50);
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      word-break: break-all;
+    }
+    .result a { color: var(--blue); text-decoration: none; }
+    .result a:hover { text-decoration: underline; }
+    .result strong { color: var(--navy); }
+    .error { background: #FEF2F2; color: #991B1B; }
+    hr { border: none; border-top: 1px solid var(--gray-200); margin: 18px 0; }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <h1>BPI Commercial — Deal Manager</h1>
+  <p class="tagline">Create deals, run the pipeline, and look up dashboard URLs.</p>
+
+  <!-- STEP 1 ──────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Create DD Folder</div>
+    </div>
+    <p class="step-desc">
+      Enter the full property address. Creates the Drive subfolder (with 9 DD
+      categories), copies the Commercial CF Template, and adds a Master Index row.
+    </p>
+    <label for="address">PROPERTY ADDRESS</label>
+    <input type="text" id="address" placeholder="1/37 Yirrigan Drive Mirrabooka WA 6061" />
+    <button class="btn-primary" id="btnCreate" onclick="createDeal()">Create Deal</button>
+    <div id="createResult"></div>
+  </div>
+
+  <!-- STEP 2 ──────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Run Pipeline</div>
+    </div>
+    <p class="step-desc">
+      After dropping files into the 9 DD subfolders and filling the CF sheet,
+      paste the CF Sheet URL here. Scans files, mirrors CF values into Settings,
+      and seeds the AI-research tabs.
+    </p>
+    <label for="cfUrl">CF SHEET URL</label>
+    <input type="text" id="cfUrl" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <button class="btn-blue" id="btnPipeline" onclick="runPipeline()">Run Pipeline</button>
+    <div id="pipelineResult"></div>
+  </div>
+
+  <!-- STEP 3 ──────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Get Dashboard URL</div>
+    </div>
+    <p class="step-desc">
+      Paste the address or slug to get the live dashboard URL.
+    </p>
+    <label for="lookupAddr">ADDRESS OR SLUG</label>
+    <input type="text" id="lookupAddr" placeholder="1/37 Yirrigan Drive Mirrabooka WA 6061" />
+    <button class="btn-primary" onclick="getDashUrl()">Get URL</button>
+    <div id="dashUrlResult"></div>
+  </div>
+
+  <script>
+    function showResult(id, html, isError) {
+      const el = document.getElementById(id);
+      el.className = 'result' + (isError ? ' error' : '');
+      el.innerHTML = html;
+    }
+
+    function setLoading(btnId, label) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>' + label;
+    }
+    function resetBtn(btnId, label) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+
+    function createDeal() {
+      const address = document.getElementById('address').value.trim();
+      if (!address) {
+        showResult('createResult', 'Enter an address first.', true);
+        return;
+      }
+      setLoading('btnCreate', 'Creating...');
+      showResult('createResult', 'Creating folder, copying CF template, writing Master Index row...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          resetBtn('btnCreate', 'Create Deal');
+          showResult('createResult',
+            '<strong>Deal created.</strong><br>' +
+            '<strong>Slug:</strong> ' + result.slug + '<br>' +
+            '<strong>DD Folder:</strong> <a href="' + result.folderUrl + '" target="_blank">open</a><br>' +
+            '<strong>CF Sheet:</strong> <a href="' + result.cfSheetUrl + '" target="_blank">open</a><br>' +
+            '<strong>Dashboard:</strong> <a href="' + result.dashboardUrl + '" target="_blank">' + result.dashboardUrl + '</a>'
+          );
+          // Auto-fill step 2
+          document.getElementById('cfUrl').value = result.cfSheetUrl;
+          // Auto-fill step 3
+          document.getElementById('lookupAddr').value = address;
+        })
+        .withFailureHandler(function(err) {
+          resetBtn('btnCreate', 'Create Deal');
+          showResult('createResult', 'Error: ' + err.message, true);
+        })
+        .createCommercialDeal(address);
+    }
+
+    function runPipeline() {
+      const url = document.getElementById('cfUrl').value.trim();
+      if (!url) {
+        showResult('pipelineResult', 'Paste the CF Sheet URL first.', true);
+        return;
+      }
+      setLoading('btnPipeline', 'Running...');
+      showResult('pipelineResult', 'Scanning Drive folders and populating CF tabs...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          resetBtn('btnPipeline', 'Run Pipeline');
+          showResult('pipelineResult',
+            '<strong>' + result.message + '</strong><br>' +
+            'DD subfolders scanned: ' + result.ddSubfoldersScanned + '<br>' +
+            'Files found: ' + result.ddFilesFound + '<br>' +
+            'Tabs populated: ' + (result.tabsPopulated && result.tabsPopulated.length ? result.tabsPopulated.join(', ') : '(none — already populated)')
+          );
+        })
+        .withFailureHandler(function(err) {
+          resetBtn('btnPipeline', 'Run Pipeline');
+          showResult('pipelineResult', 'Error: ' + err.message, true);
+        })
+        .runPipeline(url);
+    }
+
+    function getDashUrl() {
+      const v = document.getElementById('lookupAddr').value.trim();
+      if (!v) {
+        showResult('dashUrlResult', 'Enter the address or slug.', true);
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(url) {
+          showResult('dashUrlResult', '<a href="' + url + '" target="_blank">' + url + '</a>');
+        })
+        .withFailureHandler(function(err) {
+          showResult('dashUrlResult', 'Error: ' + err.message, true);
+        })
+        .getDashboardUrl(v);
+    }
+  </script>
+
+</body>
+</html>

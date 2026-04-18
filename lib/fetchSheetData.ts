@@ -1,0 +1,338 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Commercial CF Sheet → PropertyData fetcher
+// ─────────────────────────────────────────────────────────────────────────────
+// Reads a Commercial Deal Sheet (copy of the Commercial CF Template) and maps
+// tabs to the matching section of PropertyData.
+//
+// Commercial CF Template tabs:
+//   Settings, Cash FLow Calc, Rental Assessment (sqm rates),
+//   Sales Comparables, Due Diligence, Industries,
+//   Infrastructure Projects, Distances
+//
+// Uses Google's gviz endpoint (no API key; sheet must be "Anyone with link").
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type { PropertyData } from './propertyData';
+import { defaultPropertyData } from './propertyData';
+
+export const SHEET_TABS = {
+  SETTINGS:        'Settings',
+  CASHFLOW:        'Cash FLow Calc',
+  RENTAL:          'Rental Assessment (sqm rates)',
+  SALES:           'Sales Comparables',
+  DD:              'Due Diligence',
+  INDUSTRIES:      'Industries',
+  INFRASTRUCTURE:  'Infrastructure Projects',
+  DISTANCES:       'Distances',
+} as const;
+
+async function fetchTab(sheetId: string, tabName: string): Promise<string[][]> {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&headers=1`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    return parseCSV(await res.text());
+  } catch {
+    return [];
+  }
+}
+
+async function fetchTabByGid(sheetId: string, gid: string): Promise<string[][]> {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    return parseCSV(await res.text());
+  } catch {
+    return [];
+  }
+}
+
+function parseCSV(csv: string): string[][] {
+  const rows: string[][] = [];
+  let current = '';
+  let inQuotes = false;
+  let row: string[] = [];
+
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (ch === '"') {
+      if (inQuotes && csv[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      row.push(current.trim());
+      current = '';
+    } else if ((ch === '\n' || (ch === '\r' && csv[i + 1] === '\n')) && !inQuotes) {
+      if (ch === '\r') i++;
+      row.push(current.trim());
+      if (row.some(c => c !== '')) rows.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current !== '' || row.length > 0) {
+    row.push(current.trim());
+    if (row.some(c => c !== '')) rows.push(row);
+  }
+  return rows;
+}
+
+function toNum(s: string | number | undefined | null): number {
+  if (typeof s === 'number') return isFinite(s) ? s : 0;
+  if (!s) return 0;
+  const cleaned = String(s).replace(/[$,%\s]/g, '').replace(/[()]/g, '');
+  const n = Number(cleaned);
+  return isFinite(n) ? n : 0;
+}
+
+function toSettingsMap(rows: string[][]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const row of rows) {
+    const [key, val] = [row[0] ?? '', row[1] ?? ''];
+    if (key && !key.startsWith('──')) map[key.trim()] = (val ?? '').trim();
+  }
+  return map;
+}
+
+export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
+  if (!sheetId) return defaultPropertyData;
+
+  const [
+    settingsRows, cashflowRows, rentalRows, salesRows,
+    ddRows, industriesRows, infraRows, distancesRows,
+  ] = await Promise.all([
+    fetchTabByGid(sheetId, '0'),                  // Settings (first tab)
+    fetchTab(sheetId, SHEET_TABS.CASHFLOW),
+    fetchTab(sheetId, SHEET_TABS.RENTAL),
+    fetchTab(sheetId, SHEET_TABS.SALES),
+    fetchTab(sheetId, SHEET_TABS.DD),
+    fetchTab(sheetId, SHEET_TABS.INDUSTRIES),
+    fetchTab(sheetId, SHEET_TABS.INFRASTRUCTURE),
+    fetchTab(sheetId, SHEET_TABS.DISTANCES),
+  ]);
+
+  const s = toSettingsMap(settingsRows);
+  const data: PropertyData = JSON.parse(JSON.stringify(defaultPropertyData));
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  data.address     = s['Address']      ?? '';
+  data.lastUpdated = s['Last Updated'] ?? '';
+  data.reaLink     = s['Listing Link'] ?? s['REA Link'] ?? s['Property.com.au link'] ?? '';
+
+  // ── Features ──────────────────────────────────────────────────────────────
+  data.features.heroImage   = s['Hero Image URL'] ?? '';
+  data.features.propertyUrl = s['Property URL']   ?? '';
+  const featureLabels = [
+    'Property Type', 'Building Area (sqm)', 'Floor Area (sqm)', 'Land Area (sqm)',
+    'Year Built', 'Zoning', 'Parking Spaces', 'Car Spaces',
+    'NABERS Rating', 'Floor Count', 'Tenancy Count',
+  ];
+  data.features.details = featureLabels
+    .filter((k) => s[k])
+    .map((k) => ({ label: k, value: s[k] }));
+
+  // ── Cashflow (mirrored from CF Calc by the populator into Settings) ──────
+  data.cashflow.purchasePrice      = toNum(s['Purchase Price']);
+  data.cashflow.lvr                = toNum(s['LVR']);
+  data.cashflow.interestRate       = toNum(s['Interest Rate']);
+  data.cashflow.loanTermYears      = toNum(s['Loan Term Years']) || 30;
+  data.cashflow.annualRent         = toNum(s['Net Annual Rent']) || toNum(s['Annual Rent']);
+  data.cashflow.rentGrowthRate     = toNum(s['Rent Growth Rate']);
+  data.cashflow.capitalGrowthRate  = toNum(s['Capital Growth Rate']);
+  data.cashflow.expenseGrowthRate  = toNum(s['Expense Growth Rate']);
+  data.cashflow.annualExpenses     = toNum(s['Annual Outgoings']) || toNum(s['Annual Expenses']);
+
+  data.cashflow.upfrontCosts = {
+    deposit:           toNum(s['Deposit']),
+    stampDuty:         toNum(s['Stamp Duty']),
+    gst:               toNum(s['GST']),
+    conveyancing:      toNum(s['Conveyancing']) || toNum(s['Solicitor Cost']),
+    buildingAndPest:   toNum(s['Building and Pest']) || toNum(s['Building Inspection']),
+    buildingInsurance: toNum(s['Building Insurance']),
+    titleInsurance:    toNum(s['Title Insurance']),
+    totalRequired:     toNum(s['Total Required']),
+  };
+
+  data.cashflow.expenseBreakdown = Object.entries(s)
+    .filter(([k]) => k.startsWith('Outgoing: ') || k.startsWith('Expense: '))
+    .map(([k, v]) => ({ label: k.replace(/^(Outgoing: |Expense: )/, ''), annual: toNum(v) }));
+
+  // Equity Projection: populator writes a dedicated "Equity Projection" tab.
+  // Schema: Year, Gross Annual Rent, Property Value, Net Equity, Net Cashflow
+  const eqTab = await fetchTab(sheetId, 'Equity Projection');
+  if (eqTab.length > 1) {
+    data.cashflow.equityProjection = eqTab.slice(1)
+      .filter((r) => r[0] && !isNaN(Number(r[0])))
+      .map((r) => {
+        const rental = toNum(r[1]);
+        const cashflow = toNum(r[4]);
+        return {
+          year:           toNum(r[0]),
+          rentalIncome:   rental,
+          totalExpenses:  Math.max(0, rental - cashflow),
+          annualCashflow: cashflow,
+          rentPerWeek:    Math.round(rental / 52),
+          propertyValue:  toNum(r[2]),
+          netEquity:      toNum(r[3]),
+          netCashflow:    cashflow,
+        };
+      });
+  }
+
+  // ── Rental Assessment (sqm rates) ─────────────────────────────────────────
+  data.rentalAssessment.spreadsheetUrl = s['Rental Assessment URL'] ?? '';
+  if (rentalRows.length > 0) {
+    const summary: { label: string; value: string }[] = [];
+    const compRows: string[][] = [];
+    let headers: string[] = [];
+    let inComps = false;
+    for (const r of rentalRows) {
+      if (!inComps && r[0] && r[1] && !r[2]) {
+        summary.push({ label: r[0], value: r[1] });
+      } else if (!inComps && r[0] && r.length > 2) {
+        headers = r;
+        inComps = true;
+      } else if (inComps) {
+        compRows.push(r);
+      }
+    }
+    data.rentalAssessment.summary = summary;
+    data.rentalAssessment.comparables = { headers, rows: compRows };
+  }
+
+  // ── Sales Comparables ─────────────────────────────────────────────────────
+  if (salesRows.length > 0) {
+    const summary: { label: string; value: string }[] = [];
+    const tblRows: string[][] = [];
+    let headers: string[] = [];
+    let inTable = false;
+    for (const r of salesRows) {
+      if (!inTable && r[0] && r[1] && !r[2]) {
+        summary.push({ label: r[0], value: r[1] });
+      } else if (!inTable && r[0] && r.length > 2) {
+        headers = r;
+        inTable = true;
+      } else if (inTable) {
+        tblRows.push(r);
+      }
+    }
+    data.salesComparables.summary = summary;
+    data.salesComparables.table = { headers, rows: tblRows };
+    if (tblRows.length > 0) {
+      data.salesComparisons.salesTable = { headers, rows: tblRows };
+    }
+  }
+
+  // ── Lease & Tenant Insights (from Settings) ───────────────────────────────
+  const tenantLabels = [
+    'Tenant', 'Tenant Covenant', 'Lease Type', 'Lease Start', 'Lease Expiry',
+    'WALE (yrs)', 'Rent Review', 'Option Terms', 'Outgoings Recovery',
+  ];
+  data.tenantLease.items = tenantLabels
+    .filter((k) => s[k])
+    .map((k) => ({ label: k, value: s[k] }));
+  data.tenantLease.spreadsheetUrl       = s['CF Sheet URL']                ?? '';
+  data.tenantLease.vacancyRate          = s['Vacancy rate (%)']            ?? '';
+  data.tenantLease.vacancySource        = s['Vacancy Source']              ?? '';
+  data.tenantLease.leaseDocsFolder      = s['Lease Docs Folder URL']       ?? '';
+  data.tenantLease.tenantInsightsFolder = s['Tenant Insights Folder URL']  ?? '';
+
+  // ── Location / Distances ──────────────────────────────────────────────────
+  data.location.lat     = toNum(s['Latitude']);
+  data.location.lng     = toNum(s['Longitude']);
+  data.location.mapBbox = s['Map Bbox'] ?? '';
+  if (distancesRows.length > 0) {
+    const startIdx = String(distancesRows[0][0]).trim().toLowerCase() === 'place' ? 1 : 0;
+    data.location.distances = distancesRows.slice(startIdx)
+      .filter((r) => r[0])
+      .map((r) => ({
+        place:     r[0] ?? '',
+        distance:  r[1] ?? '',
+        driveTime: r[2] ?? '',
+        address:   r[3] ?? '',
+      }));
+  }
+
+  // ── Government (Infrastructure Projects tab) ──────────────────────────────
+  data.government.regionName = s['Region Name'] ?? '';
+  if (infraRows.length > 1) {
+    data.government.projects = infraRows.slice(1)
+      .filter((r) => r[0])
+      .map((r) => ({
+        title:       r[0] ?? '',
+        description: r[1] ?? '',
+        bullets:     (r[2] ?? '').split('|').map((x) => x.trim()).filter(Boolean),
+        sourceUrl:   r[3] ?? '',
+      }));
+  }
+
+  // ── Industries ────────────────────────────────────────────────────────────
+  data.population.lga           = s['LGA'] ?? '';
+  data.population.lgaName       = s['LGA Display Name'] ?? '';
+  data.population.benchmarkName = s['Benchmark Name'] ?? '';
+  if (industriesRows.length > 1) {
+    data.population.topIndustries = industriesRows.slice(1)
+      .filter((r) => r[0])
+      .map((r) => ({ name: r[0] ?? '', lga: toNum(r[1]), benchmark: toNum(r[2]) }));
+  }
+  data.population.industryTakeaways = (s['Industry Takeaways'] ?? '')
+    .split('|').map((t) => t.trim()).filter(Boolean);
+  data.population.industrySources = (s['Industry Sources'] ?? '')
+    .split('|')
+    .map((entry) => {
+      const [name, url] = entry.split('::').map((x) => x.trim());
+      return { name: name ?? '', url: url ?? '' };
+    })
+    .filter((e) => e.name && e.url);
+
+  // ── Suburb Profile ────────────────────────────────────────────────────────
+  const suburbLabels = [
+    'Commercial Vacancy Rate', 'Median Commercial Yield',
+    'Rent Growth (YoY)', 'Supply Pipeline', 'Absorption Rate',
+    'Median House Price', 'Median Rent',
+  ];
+  data.suburbProfile.summary = suburbLabels
+    .filter((k) => s[k])
+    .map((k) => ({ label: k, value: s[k] }));
+  data.suburbProfile.reportFolderUrl = s['Suburb Report Folder URL'] ?? '';
+
+  // ── Due Diligence (populator writes to DD tab; map into floodChecks shape) ─
+  const ddFolderUrl = s['DD Folder URL'] ?? s['Google Drive folder'] ?? '';
+  data.floodChecks.ddFolderUrl = ddFolderUrl;
+  if (ddRows.length > 1) {
+    data.floodChecks.checks = ddRows.slice(1)
+      .filter((r) => r[0] && r[0] !== 'Filled by AI')
+      .map((r) => ({
+        label:     r[0] ?? '',
+        status:    r[1] ?? '',
+        folder:    r[2] ?? '',
+        folderUrl: r[3] ?? '',
+        imageId:   r[4] ?? '',
+        fileName:  r[5] ?? '',
+        type:      (r[6] as 'image' | 'pdf' | 'video' | 'link' | 'doc') ?? 'link',
+      }));
+  }
+  data.floodChecks.planningReport = {
+    label:     'Council Planning Report',
+    fileId:    s['Planning Report File ID']    ?? '',
+    fileName:  s['Planning Report File Name']  ?? '',
+    folderUrl: s['Planning Report Folder URL'] ?? '',
+  };
+
+  // ── Drive Repo (top-level DD subfolders) ──────────────────────────────────
+  data.driveRepo.folderUrl  = ddFolderUrl;
+  data.driveRepo.subfolders = (data.floodChecks.checks || [])
+    .filter((c) => c.folderUrl)
+    .map((c) => ({ name: c.folder || c.label, url: c.folderUrl }));
+
+  // ── Ask Claude suggested questions ────────────────────────────────────────
+  data.askClaude.suggestedQuestions = (s['Suggested Questions'] ?? '')
+    .split('|').map((q) => q.trim()).filter(Boolean);
+
+  // ── About ─────────────────────────────────────────────────────────────────
+  data.about.phone = s['Phone'] ?? data.about.phone;
+
+  return data;
+}

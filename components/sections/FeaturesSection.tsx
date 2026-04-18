@@ -72,7 +72,10 @@ export default function FeaturesSection() {
           </p>
         )}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
-          {features.propertyUrl && (
+          {/* Only render each button when the URL actually points at that
+              platform — prevents misbranded links if the populator picks
+              up the wrong URL from the CF sheet. */}
+          {features.propertyUrl?.includes('commercialrealestate.com.au') && (
             <a
               href={features.propertyUrl}
               target="_blank"
@@ -81,7 +84,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#005151',   // commercialrealestate.com.au brand teal
+                backgroundColor: '#005151',   // commercialrealestate.com.au (Domain) brand teal
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',
@@ -95,7 +98,7 @@ export default function FeaturesSection() {
               <span style={{ fontSize: '0.75rem' }}>&#8599;</span>
             </a>
           )}
-          {reaLink && (
+          {reaLink?.includes('realcommercial.com.au') && (
             <a
               href={reaLink}
               target="_blank"
@@ -104,7 +107,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#e0151b',   // realcommercial.com.au brand red
+                backgroundColor: '#E4002B',   // REA Group brand red
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',

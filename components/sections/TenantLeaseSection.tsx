@@ -1,20 +1,22 @@
 'use client';
 
 // Lease & Tenant Insights — commercial-specific view.
-// Reads propertyData.tenantLease: items (WALE, covenant, rent reviews, lease type, options),
-// plus links to the Tenant Insights and Lease Documents Drive subfolders.
+// Headline lease terms live in the Executive Summary; this section
+// focuses on the remaining lease detail rows and back-links to the
+// Lease Documents folder in the DD repo.
 
 import { usePropertyData } from '@/lib/PropertyDataContext';
 
-const HIGHLIGHT_KEYS = ['Tenant', 'Occupancy', 'Tenant Covenant', 'Lease Type', 'WALE (yrs)', 'Lease Expiry'];
+// These keys are shown in the Executive Summary, so they're filtered
+// out here to avoid duplication.
+const EXEC_SUMMARY_KEYS = ['Tenant', 'Tenant Covenant', 'Occupancy', 'Lease Type', 'WALE (yrs)', 'Lease Expiry'];
 
 export default function TenantLeaseSection() {
   const propertyData = usePropertyData();
   const { tenantLease } = propertyData;
 
   const items = tenantLease.items;
-  const highlighted = items.filter((i) => HIGHLIGHT_KEYS.includes(i.label));
-  const remainder   = items.filter((i) => !HIGHLIGHT_KEYS.includes(i.label));
+  const remainder = items.filter((i) => !EXEC_SUMMARY_KEYS.includes(i.label));
 
   const hasData =
     items.length > 0 ||
@@ -28,37 +30,13 @@ export default function TenantLeaseSection() {
         Lease &amp; Tenant Insights
       </h2>
       <p style={{ color: '#9CA3AF', fontSize: '0.875rem', marginBottom: '24px' }}>
-        Tenant covenant, lease structure, and income security.
+        Lease structure detail. Headline terms (tenant, WALE, expiry) are in the Executive Summary.
       </p>
 
       {!hasData && (
         <p style={{ color: '#9CA3AF', fontSize: '0.875rem', fontStyle: 'italic' }}>
           Lease and tenant details will appear here once populated in the CF sheet Settings tab.
         </p>
-      )}
-
-      {highlighted.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-          {highlighted.map((item) => (
-            <div
-              key={item.label}
-              style={{
-                flex: '1 1 200px',
-                backgroundColor: '#F9FAFB',
-                border: '1px solid #E5E7EB',
-                borderRadius: '8px',
-                padding: '16px 20px',
-              }}
-            >
-              <p style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {item.label}
-              </p>
-              <p style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a2b3c', margin: 0 }}>
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
       )}
 
       {remainder.length > 0 && (

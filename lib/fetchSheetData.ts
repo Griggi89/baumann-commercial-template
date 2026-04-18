@@ -162,6 +162,7 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     gst:               toNum(s['GST']),
     conveyancing:      toNum(s['Conveyancing']) || toNum(s['Solicitor Cost']),
     buildingAndPest:   toNum(s['Building and Pest']) || toNum(s['Building Inspection']),
+    valuation:         toNum(s['Valuation']),
     buildingInsurance: toNum(s['Building Insurance']),
     titleInsurance:    toNum(s['Title Insurance']),
     totalRequired:     toNum(s['Total Required']),

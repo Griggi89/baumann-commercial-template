@@ -91,7 +91,11 @@ function DashboardContent() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const OFFSET = 120;
+      // OFFSET is how far down from the viewport top a section's heading
+      // must scroll past before it's considered "active". Bumped from 120
+      // to 220 so the nav highlight tracks the section you're actually
+      // reading, not the one above it.
+      const OFFSET = 220;
       const nearBottom =
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80;
       if (nearBottom) {

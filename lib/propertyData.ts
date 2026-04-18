@@ -46,6 +46,7 @@ export interface PropertyData {
       gst: number;                   // commercial-specific
       conveyancing: number;
       buildingAndPest: number;
+      valuation: number;             // commercial-specific — lender-required valuation
       buildingInsurance: number;
       titleInsurance: number;
       totalRequired: number;
@@ -177,7 +178,7 @@ export const defaultPropertyData: PropertyData = {
     expenseBreakdown: [],
     upfrontCosts: {
       deposit: 0, stampDuty: 0, gst: 0, conveyancing: 0,
-      buildingAndPest: 0, buildingInsurance: 0, titleInsurance: 0, totalRequired: 0,
+      buildingAndPest: 0, valuation: 0, buildingInsurance: 0, titleInsurance: 0, totalRequired: 0,
     },
     equityProjection: [],
   },

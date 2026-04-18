@@ -27,7 +27,8 @@ function calcMonthlyRepayment(principal: number, annualRate: number, years: numb
 }
 
 function formatDollar(value: number): string {
-  if (Math.abs(value) >= 1000) return '$' + (value / 1000).toFixed(0) + 'k';
+  if (Math.abs(value) >= 1_000_000) return '$' + (value / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  if (Math.abs(value) >= 1_000) return '$' + (value / 1_000).toFixed(0) + 'k';
   return '$' + value.toFixed(0);
 }
 
@@ -157,7 +158,7 @@ export default function CashflowSection() {
         <SummaryCard label="Net Yield / Cap Rate (est.)" value={`${netYieldPct}%`} sub="Net rent ÷ purchase price (triple net)" />
         <SummaryCard
           label="Total Cash Required (est.)"
-          value={`$${(cashflow.upfrontCosts.totalRequired / 1000).toFixed(0)}k`}
+          value={formatDollar(cashflow.upfrontCosts.totalRequired)}
           sub={cashflow.purchasePrice
             ? `${Math.round(cashflow.upfrontCosts.totalRequired / cashflow.purchasePrice * 100)}% of purchase price`
             : 'Deposit + costs'}
@@ -346,9 +347,10 @@ export default function CashflowSection() {
                   { label: 'Stamp Duty (est.)', value: cashflow.upfrontCosts.stampDuty },
                   { label: 'Conveyancing', value: cashflow.upfrontCosts.conveyancing },
                   { label: 'Building & Pest Inspection', value: cashflow.upfrontCosts.buildingAndPest },
+                  { label: 'Valuation (lender-required)', value: cashflow.upfrontCosts.valuation ?? 0 },
                   { label: 'Building Insurance (est.)', value: cashflow.upfrontCosts.buildingInsurance },
                   { label: 'Title Insurance (est.)', value: cashflow.upfrontCosts.titleInsurance },
-                ].map((item, i, arr) => (
+                ].filter(item => item.value > 0 || ['Deposit', 'Stamp Duty', 'Conveyancing'].some(k => item.label.startsWith(k))).map((item, i, arr) => (
                   <tr key={item.label} style={{ borderBottom: i < arr.length - 1 ? '1px solid #F3F4F6' : 'none', backgroundColor: '#fff' }}>
                     <td style={{ padding: '10px 16px', color: '#6B7280' }}>{item.label}</td>
                     <td style={{ padding: '10px 16px', textAlign: 'right', color: '#374151', fontWeight: 500 }}>${item.value.toLocaleString()}</td>

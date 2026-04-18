@@ -22,10 +22,10 @@ export const demoPropertyData: PropertyData = {
     heroImage: 'https://res-3.cloudinary.com/cre/image/fetch/h_900,f_auto,c_fill,q_auto,d_placeholder_viubzx.png/https%3A%2F%2Fbucket-api.commercialrealestate.com.au%2Fv1%2Fbucket%2Fimage%2F2020772962_1_1_260417_114738-w1600-h1199',
     propertyUrl: 'https://www.commercialrealestate.com.au/property/22-maroochydore-road-maroochydore-qld-4558-2020772962',
     details: [
-      { label: 'Property Type',        value: 'Medical & Health' },
+      { label: 'Property Type',        value: 'Industrial Showroom' },
       { label: 'Building Area (sqm)',  value: '350' },
       { label: 'Land Area (sqm)',      value: '1,699' },
-      { label: 'Zoning',               value: 'Principal Centre (Sunshine Coast Planning Scheme)' },
+      { label: 'Zoning',               value: 'Mixed Use (Sunshine Coast Planning Scheme)' },
       { label: 'Parking Spaces',       value: '10 (on-site)' },
       { label: 'Availability',         value: 'Leased (single-tenant triple net)' },
       { label: 'Tenancy Count',        value: 'Single tenant (100% occupied)' },
@@ -35,8 +35,8 @@ export const demoPropertyData: PropertyData = {
   tenantLease: {
     spreadsheetUrl: '',
     items: [
-      { label: 'Tenant',              value: 'Sunshine Coast Health & Wellness Group Pty Ltd' },
-      { label: 'Tenant Covenant',     value: 'Strong private — 14-yr operating history, Sunshine Coast HQ' },
+      { label: 'Tenant',              value: 'Coastal Marine & Outdoor Pty Ltd' },
+      { label: 'Tenant Covenant',     value: 'Strong private — 12-yr operating history, Sunshine Coast flagship showroom' },
       { label: 'Occupancy',           value: 'Single tenant (100%)' },
       { label: 'Lease Type',          value: 'Triple Net (all outgoings recovered)' },
       { label: 'Lease Start',         value: '2024-03-01' },
@@ -48,46 +48,46 @@ export const demoPropertyData: PropertyData = {
     ],
     vacancyRate: '5.1% (Sunshine Coast commercial — CY25)',
     vacancySource: 'PCA Office Market Report Jan 2026',
-    leaseDocsFolder: '',
-    tenantInsightsFolder: '',
+    leaseDocsFolder: '#due-diligence',
+    tenantInsightsFolder: '#due-diligence',
   },
 
   cashflow: {
-    purchasePrice: 6_500_000,
-    lvr: 0.70,  // commercial standard — 30% equity
-    interestRate: 0.07,
-    loanTermYears: 25,
-    annualRent: 438_750,
-    rentGrowthRate: 0.035,
-    // Commercial property values track rent growth (value = NOI ÷ cap rate;
-    // NOI grows with rent). Both set to rentGrowthRate for consistency.
-    capitalGrowthRate: 0.035,
-    year1CapitalGrowthRate: 0.035,
-    expenseGrowthRate: 0.035,  // mgmt fee tied to CPI
-    // Single-tenant triple net: landlord pays only management fee;
-    // all other outgoings (rates, insurance, maintenance) recovered from tenant.
-    annualExpenses: 4_000,
+    // Matches the Commercial Pay Down Calculator defaults (see CF template).
+    // Triple-net lease assumed — tenant covers all outgoings incl.
+    // land tax + maintenance; landlord pays mgmt fee (5%) + 2% aux cost.
+    purchasePrice: 1_000_000,
+    lvr: 0.80,
+    interestRate: 0.08,
+    loanTermYears: 10,
+    annualRent: 60_000,  // 6.00% cap rate on $1M
+    rentGrowthRate: 0.03,            // CPI / yearly review
+    capitalGrowthRate: 0.03,
+    year1CapitalGrowthRate: 0.03,
+    expenseGrowthRate: 0.03,
+    annualExpenses: 4_200,  // 7% of $60,000 (mgmt 5% + aux 2%)
     expenseBreakdown: [
-      { label: 'Property Management Fee', annual: 4_000 },
+      { label: 'Property Management Fee + 2% aux (compliance / insurance)', annual: 4_200 },
     ],
     upfrontCosts: {
-      deposit:            1_950_000, // 30% of $6.5M (commercial standard equity)
-      stampDuty:          272_000,   // QLD commercial transfer duty (approx)
+      deposit:            200_000, // 20% of $1M (80% LVR per CF default)
+      stampDuty:          44_000,  // QLD commercial on $1M (outside SA)
       gst:                0,
-      conveyancing:       8_000,
-      buildingAndPest:    3_500,
+      conveyancing:       4_000,   // solicitor cost
+      buildingAndPest:    1_000,   // building inspection
+      valuation:          3_000,   // lender-required commercial valuation
       buildingInsurance:  0,
       titleInsurance:     0,
-      totalRequired:      2_233_500, // deposit + acquisition costs
+      totalRequired:      252_000,
     },
     equityProjection: Array.from({ length: 10 }, (_, i) => {
       const year = i + 1;
-      const growth = 0.035;
-      const annualRent = Math.round(438_750 * Math.pow(1 + growth, i));
-      const propertyValue = Math.round(6_500_000 * Math.pow(1 + growth, i));
-      const loan = 4_550_000;  // 70% of $6.5M
-      const interest = loan * 0.07;
-      const outgoings = Math.round(4_000 * Math.pow(1 + growth, i));  // mgmt fee, CPI-linked
+      const growth = 0.03;
+      const annualRent = Math.round(60_000 * Math.pow(1 + growth, i));
+      const propertyValue = Math.round(1_000_000 * Math.pow(1 + growth, i));
+      const loan = 800_000;  // 80% of $1M
+      const interest = loan * 0.08;
+      const outgoings = Math.round(annualRent * 0.07);  // mgmt + aux = 7% of rent
       const netCashflow = annualRent - outgoings - interest;
       return {
         year,
@@ -105,35 +105,35 @@ export const demoPropertyData: PropertyData = {
   rentalAssessment: {
     spreadsheetUrl: '',
     summary: [
-      { label: 'Passing rent $/sqm',           value: '$354' },
-      { label: 'Market rent $/sqm',            value: '$365' },
-      { label: 'Net lettable area',            value: '1,240 sqm' },
-      { label: 'Sunshine Coast CBD vacancy',   value: '5.1%' },
+      { label: 'Passing rent $/sqm',           value: '$171' },
+      { label: 'Market rent $/sqm',            value: '$175' },
+      { label: 'Net lettable area',            value: '350 sqm' },
+      { label: 'Sunshine Coast commercial vacancy', value: '5.1%' },
     ],
     comparables: {
       headers: ['Address', 'Area (sqm)', 'Rent $/sqm', 'Lease Term'],
       rows: [
-        ['12 First Avenue, Maroochydore',       '880',   '$340', '5 + 5 yrs'],
-        ['90 Aerodrome Road, Maroochydore',     '1,450', '$360', '7 + 5 yrs'],
-        ['33 Horton Parade, Maroochydore',      '620',   '$378', '3 + 3 yrs'],
-        ['5 Plaza Parade, Maroochydore',        '2,100', '$348', '10 yrs'],
+        ['12 First Avenue, Maroochydore',       '320',   '$165', '5 + 5 yrs'],
+        ['90 Aerodrome Road, Maroochydore',     '410',   '$180', '7 + 5 yrs'],
+        ['33 Horton Parade, Maroochydore',      '280',   '$188', '3 + 3 yrs'],
+        ['5 Plaza Parade, Maroochydore',        '520',   '$170', '10 yrs'],
       ],
     },
   },
 
   salesComparables: {
     summary: [
-      { label: 'Market cap rate',                 value: '6.75%' },
-      { label: 'Weighted Average Cap Rate',       value: '6.90%' },
-      { label: '$/sqm range',                     value: '$4,600 – $5,600' },
+      { label: 'Market cap rate',                 value: '6.00%' },
+      { label: 'Weighted Average Cap Rate',       value: '6.10%' },
+      { label: '$/sqm range',                     value: '$2,500 – $3,100' },
     ],
     table: {
       headers: ['Address', 'Sale Price', '$/sqm', 'Cap Rate', 'Date'],
       rows: [
-        ['80 Aerodrome Road, Maroochydore',         '$5.2M',  '$4,700', '6.85%', '2025-11'],
-        ['17 First Avenue, Maroochydore',           '$3.9M',  '$4,600', '7.05%', '2025-09'],
-        ['45 Maroochydore Road, Maroochydore',      '$8.4M',  '$5,300', '6.55%', '2026-01'],
-        ['102 Aerodrome Road, Maroochydore',        '$6.8M',  '$5,100', '6.80%', '2025-08'],
+        ['80 Aerodrome Road, Maroochydore',         '$1.15M', '$2,900', '5.85%', '2025-11'],
+        ['17 First Avenue, Maroochydore',           '$860k',  '$2,700', '6.20%', '2025-09'],
+        ['45 Maroochydore Road, Maroochydore',      '$1.35M', '$3,050', '5.95%', '2026-01'],
+        ['102 Aerodrome Road, Maroochydore',        '$1.05M', '$2,750', '6.10%', '2025-08'],
       ],
     },
   },
@@ -216,7 +216,7 @@ export const demoPropertyData: PropertyData = {
   suburbProfile: {
     summary: [
       { label: 'Commercial Vacancy Rate', value: '5.1%' },
-      { label: 'Median Commercial Yield', value: '6.75%' },
+      { label: 'Median Commercial Yield', value: '6.00%' },
       { label: 'Rent Growth (YoY)',       value: '+3.2%' },
       { label: 'Supply Pipeline',         value: '38,000 sqm (2026–28)' },
       { label: 'Absorption Rate',         value: '~12,000 sqm / yr' },

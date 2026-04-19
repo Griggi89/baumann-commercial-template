@@ -268,9 +268,12 @@ export default function CashflowSection() {
           }}
         >
           <strong style={{ color: '#374151' }}>Assumptions:</strong>{' '}
-          Purchase ${cashflow.purchasePrice.toLocaleString()}, LVR {(cashflow.lvr * 100).toFixed(0)}%, interest-only at {(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% p.a.,
-          rent ${cashflow.annualRent.toLocaleString()}/yr growing {(cashflow.rentGrowthRate * 100).toFixed(1).replace(/\.0$/, '')}%/yr,
-          non-recoverable expenses ${cashflow.annualExpenses.toLocaleString()}/yr growing {((cashflow.expenseGrowthRate ?? 0.03) * 100).toFixed(0)}%/yr (CPI), IO interest fixed.
+          Purchase ${cashflow.purchasePrice.toLocaleString()}, LVR {(cashflow.lvr * 100).toFixed(0)}%, interest at {(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% p.a.,
+          rent ${cashflow.annualRent.toLocaleString()}/yr growing {(cashflow.rentGrowthRate * 100).toFixed(1).replace(/\.0$/, '')}%/yr (CPI).
+          Net yield shown is already net of outgoings.
+          {cashflow.debtReductionPct != null && cashflow.debtReductionPct > 0 && (
+            <> Surplus cashflow reinvested to pay down loan ({Math.round(cashflow.debtReductionPct * 100)}% of net CF).</>
+          )}
         </div>
       </div>}
 

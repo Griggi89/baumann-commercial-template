@@ -23,14 +23,20 @@ export const SHEET_TABS = {
   // consolidated).
   RENTAL:          'Rental Assessment (sqm rates)',
   SALES:           'Sales Comparables',
-  // New consolidated tab (Chris's template update). Note the 'ans' typo
-  // in the tab name is deliberate — matches what's on the live template.
-  RENTAL_AND_SALES: 'Rental ans Sales comps (sqm rates)',
   DD:              'Due Diligence',
   INDUSTRIES:      'Industries',
   INFRASTRUCTURE:  'Infrastructure Projects',
   DISTANCES:       'Distances',
 } as const;
+
+// Consolidated rent + sales tab. Support two names:
+//   - 'SQM Rate Assessment'                    — target name (matches dashboard heading)
+//   - 'Rental ans Sales comps (sqm rates)'     — historical name (with the 'ans' typo) on pre-rename deal copies
+// Fetcher tries new → legacy; first non-empty result wins.
+const SQM_RATE_TAB_NAMES = [
+  'SQM Rate Assessment',
+  'Rental ans Sales comps (sqm rates)',
+] as const;
 
 async function fetchTab(sheetId: string, tabName: string): Promise<string[][]> {
   const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&headers=1`;
@@ -182,19 +188,23 @@ export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
 
 async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   const [
-    settingsRows, cashflowRows, rentalRows, salesRows, combinedRows,
+    settingsRows, cashflowRows, rentalRows, salesRows,
+    sqmNewRows, sqmLegacyRows,
     ddRows, industriesRows, infraRows, distancesRows,
   ] = await Promise.all([
     fetchTab(sheetId, SHEET_TABS.SETTINGS),       // Settings tab by name (CF template has Cash FLow Calc at gid=0, not Settings)
     fetchTab(sheetId, SHEET_TABS.CASHFLOW),
     fetchTab(sheetId, SHEET_TABS.RENTAL),          // legacy — kept for back-compat with older deal sheets
     fetchTab(sheetId, SHEET_TABS.SALES),           // legacy — same
-    fetchTab(sheetId, SHEET_TABS.RENTAL_AND_SALES),// combined tab (current template)
+    // Combined rent+sales tab: try target name first, then legacy typo'd name.
+    fetchTab(sheetId, SQM_RATE_TAB_NAMES[0]),
+    fetchTab(sheetId, SQM_RATE_TAB_NAMES[1]),
     fetchTab(sheetId, SHEET_TABS.DD),
     fetchTab(sheetId, SHEET_TABS.INDUSTRIES),
     fetchTab(sheetId, SHEET_TABS.INFRASTRUCTURE),
     fetchTab(sheetId, SHEET_TABS.DISTANCES),
   ]);
+  const combinedRows = sqmNewRows.length > 0 ? sqmNewRows : sqmLegacyRows;
 
   // Prefer the consolidated tab when present; split it into the two halves
   // the UI already expects. If it's missing (older deal sheets) we fall

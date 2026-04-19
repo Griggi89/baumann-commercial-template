@@ -163,7 +163,6 @@ export default function ExecutiveSummarySection() {
               sub={cashflow.annualRent && cashflow.purchasePrice
                 ? `${fmtMoney(cashflow.annualRent)} ÷ ${fmtMoney(cashflow.purchasePrice)}`
                 : undefined}
-              accent
             />
             <HeadlineCard
               label="Year 1 Net Cashflow"
@@ -181,7 +180,7 @@ export default function ExecutiveSummarySection() {
               label="Cash Required"
               value={fmtMoney(cashflow.upfrontCosts?.totalRequired ?? 0)}
               sub={cashflow.purchasePrice && cashflow.upfrontCosts?.totalRequired
-                ? `${Math.round((cashflow.upfrontCosts.totalRequired / cashflow.purchasePrice) * 100)}% of price`
+                ? `${Math.round((cashflow.upfrontCosts.totalRequired / cashflow.purchasePrice) * 100)}% of price${cashflow.lvr ? ` · ${Math.round(cashflow.lvr * 100)}% LVR` : ''}`
                 : undefined}
             />
           </div>

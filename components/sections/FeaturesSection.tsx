@@ -76,7 +76,10 @@ export default function FeaturesSection() {
       )}
 
       {/* Photo links row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '28px' }}>
+      <div
+        className="hero-meta-row"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '28px' }}
+      >
         {propertyData.address && !features.heroImage && (
           <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: 0 }}>
             Property photo will appear here once configured.
@@ -87,7 +90,7 @@ export default function FeaturesSection() {
             {propertyData.address}
           </p>
         )}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+        <div className="hero-listing-buttons" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
           {/* Only render each button when the URL actually points at that
               platform — prevents misbranded links if the populator picks
               up the wrong URL from the CF sheet. */}

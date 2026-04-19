@@ -7,8 +7,21 @@
 //
 // Renders two sub-tables stacked, each with its own headers / data rows /
 // "Average per sqm" summary strip. Per CL1 addendum 2026-04-19_1325.
+//
+// Mobile: tables default to COLLAPSED — average is the headline number;
+// full comparables list opens on "View X comparables" button click.
+// Desktop: tables auto-expand on mount (see useDefaultExpandedOnDesktop).
 
+import { useState, useEffect } from 'react';
 import { usePropertyData } from '@/lib/PropertyDataContext';
+
+function useDefaultExpandedOnDesktop() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) setOpen(true);
+  }, []);
+  return [open, setOpen] as const;
+}
 
 interface SubTableProps {
   title: string;
@@ -20,23 +33,79 @@ interface SubTableProps {
 
 function SubTable({ title, subtitle, summary, comparables, emptyLabel }: SubTableProps) {
   const hasData = summary.length > 0 || comparables.rows.length > 0;
+  const [open, setOpen] = useDefaultExpandedOnDesktop();
+  const rowCount = comparables.rows.length;
 
   return (
     <div style={{ marginBottom: '32px' }}>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1a2b3c', marginBottom: '4px' }}>
-        {title}
-      </h3>
-      <p style={{ color: '#9CA3AF', fontSize: '0.8rem', marginBottom: '16px' }}>
-        {subtitle}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+        <div>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1a2b3c', margin: 0 }}>
+            {title}
+          </h3>
+          <p style={{ color: '#9CA3AF', fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>
+            {subtitle}
+          </p>
+        </div>
+        {rowCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: open ? '#F3F4F6' : '#2B3C50',
+              color: open ? '#1a2b3c' : '#fff',
+              border: open ? '1px solid #E5E7EB' : 'none',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              padding: '6px 12px',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-expanded={open}
+          >
+            {open ? 'Hide' : `View ${rowCount} comparables`}
+            <span style={{ fontSize: '0.7rem' }}>{open ? '▲' : '▼'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Summary strip shown ALWAYS when present — it's the headline
+          number ($/sqm average). Works as the collapsed-state summary. */}
+      {summary.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', marginBottom: open ? '16px' : '0' }}>
+          {summary.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                flex: '1 1 200px',
+                backgroundColor: '#FEF3C7',
+                border: '1px solid #FDE68A',
+                borderRadius: '8px',
+                padding: '16px 20px',
+              }}
+            >
+              <p style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {item.label}
+              </p>
+              <p style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1a2b3c', margin: 0 }}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!hasData && (
-        <p style={{ color: '#9CA3AF', fontSize: '0.875rem', fontStyle: 'italic' }}>
+        <p style={{ color: '#9CA3AF', fontSize: '0.875rem', fontStyle: 'italic', marginTop: '16px' }}>
           {emptyLabel}
         </p>
       )}
 
-      {comparables.rows.length > 0 && (
+      {open && comparables.rows.length > 0 && (
         <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
@@ -97,31 +166,6 @@ function SubTable({ title, subtitle, summary, comparables, emptyLabel }: SubTabl
               )}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* If we have summary rows but no table data yet, render summary as cards */}
-      {comparables.rows.length === 0 && summary.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-          {summary.map((item, i) => (
-            <div
-              key={i}
-              style={{
-                flex: '1 1 200px',
-                backgroundColor: '#FEF3C7',
-                border: '1px solid #FDE68A',
-                borderRadius: '8px',
-                padding: '16px 20px',
-              }}
-            >
-              <p style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {item.label}
-              </p>
-              <p style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1a2b3c', margin: 0 }}>
-                {item.value}
-              </p>
-            </div>
-          ))}
         </div>
       )}
     </div>

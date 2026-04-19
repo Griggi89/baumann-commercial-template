@@ -3,7 +3,7 @@
 // Cashflow section — summary cards + 10-year chart + equity projection table
 // All data from propertyData.cashflow
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ComposedChart,
   Area,
@@ -53,6 +53,15 @@ function SummaryCard({ label, value, sub, valueColor }: { label: string; value: 
 export default function CashflowSection() {
   const propertyData = usePropertyData();
   const { cashflow } = propertyData;
+
+  // 10-yr projection table: collapsed by default on mobile (it's 10 rows
+  // × 10 cols — a wall of numbers on a phone). Auto-expand on desktop.
+  // Start collapsed to avoid SSR/client hydration mismatch, then flip
+  // true on mount for wide viewports.
+  const [equityOpen, setEquityOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) setEquityOpen(true);
+  }, []);
 
   // All calculations use null-safe defaults so hooks always run
   const loanAmount = (cashflow.purchasePrice ?? 0) * (cashflow.lvr ?? 0);
@@ -290,15 +299,39 @@ export default function CashflowSection() {
         const fmtSigned = (n: number) => n < 0 ? `-$${Math.abs(n).toLocaleString()}` : `$${n.toLocaleString()}`;
         return (
           <>
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4B5563', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Equity &amp; Yield Projection
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4B5563', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Equity &amp; Yield Projection
+              </p>
+              <button
+                type="button"
+                onClick={() => setEquityOpen((v) => !v)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: equityOpen ? '#F3F4F6' : '#2B3C50',
+                  color: equityOpen ? '#1a2b3c' : '#fff',
+                  border: equityOpen ? '1px solid #E5E7EB' : 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                }}
+                aria-expanded={equityOpen}
+              >
+                {equityOpen ? 'Hide 10-year table' : 'Show 10-year table'}
+                <span style={{ fontSize: '0.7rem' }}>{equityOpen ? '▲' : '▼'}</span>
+              </button>
+            </div>
             <p style={{ fontSize: '0.78rem', color: '#9CA3AF', marginBottom: '14px' }}>
               Indicative only — based on assumptions in cashflow spreadsheet.
               {hasAmort && cashflow.debtReductionPct != null && cashflow.debtReductionPct !== 1 && (
                 <> Debt reduction: <strong>{Math.round(cashflow.debtReductionPct * 100)}%</strong> of net cashflow directed at principal.</>
               )}
             </p>
+            {equityOpen && (
             <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflowX: 'auto', marginBottom: '12px' }}>
               <table style={{ width: '100%', minWidth: hasAmort ? '1080px' : '520px', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
@@ -374,6 +407,7 @@ export default function CashflowSection() {
                 </tbody>
               </table>
             </div>
+            )}
           </>
         );
       })()}

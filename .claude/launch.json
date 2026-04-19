@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "commercial-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:/Users/User/Desktop/Dashboard BPI/baumann-commercial-template",
+      "port": 3000
+    }
+  ]
+}

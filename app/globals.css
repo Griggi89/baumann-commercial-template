@@ -318,14 +318,26 @@ html.mob .dashboard-main section {
     white-space: normal !important;
   }
 
-  /* Hero listing-portal buttons: left-align on mobile (they were
-     right-aligned on desktop via justify-content:flex-end, which looks
-     out of place once the content stacks). */
-  #features > div[style*="justify-content: space-between"] {
-    justify-content: flex-start !important;
+  /* Hero listing-portal buttons: stack full-width + centered on mobile.
+     On desktop the address sits left and buttons right via
+     justify-content:space-between; on mobile that splits them awkwardly
+     once the flex wraps. Here we stack vertically, each button full
+     width so the hero reads top-to-bottom: address → buttons. */
+  .hero-meta-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
   }
-  #features > div[style*="justify-content: space-between"] > div:last-child {
-    justify-content: flex-start !important;
+  .hero-meta-row > p {
+    text-align: left !important;
+  }
+  .hero-listing-buttons {
+    justify-content: stretch !important;
+    flex: 1 1 auto !important;
+  }
+  .hero-listing-buttons > a {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
   }
 
   /* Recharts legend: wrap items cleanly, center them, give each item

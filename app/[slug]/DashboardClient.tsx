@@ -158,42 +158,12 @@ function DashboardContent() {
             MENU
           </span>
         </label>
-        {/* Logo: text-only so there's no CDN dependency and no broken-image
-            icon on flaky mobile connections. If we ever want the shield-and-
-            wordmark back, drop the asset into public/ and switch to a Next
-            Image component. */}
-        <span
-          style={{
-            marginLeft: '12px',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '24px',
-              height: '24px',
-              borderRadius: '4px',
-              backgroundColor: '#f2d82d',
-              color: '#2B3C50',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-            }}
-          >
-            B
-          </span>
-          Baumann Property
-        </span>
+        <img
+          src="https://cdn.prod.website-files.com/686ccd753cf9e1d8ecb2fb4a/686d8d54668570cae9b8c760_Logo%20Extended.png"
+          alt="Baumann Property"
+          style={{ height: '26px', width: 'auto', marginLeft: '12px' }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
       </div>
 
       <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', display: 'flex' }}>

@@ -245,12 +245,47 @@ function runPipeline(cfSheetUrl) {
   // 2. Populator — mirrors CF Calc values to Settings, fills AI research tabs
   const popResult = populateCommercialDashboard_(sheetId);
 
+  // 3. Look up this deal's slug + token in the Master Index so we can
+  //    return the final dashboard URL for one-click review post-pipeline.
+  const indexRow = findMasterIndexRowBySheetId_(sheetId);
+  const dashboardUrl = indexRow
+    ? BPI_COMMERCIAL.DASHBOARD_BASE_URL + '/' + indexRow.slug +
+      (indexRow.token ? '?t=' + indexRow.token : '')
+    : '';
+
   return {
     ddSubfoldersScanned: ddResult.subfoldersScanned,
     ddFilesFound:        ddResult.filesFound,
     tabsPopulated:       popResult.tabsPopulated,
+    dashboardUrl:        dashboardUrl,
     message:             'Pipeline complete.',
   };
+}
+
+/**
+ * Find the Master Index row matching a given CF sheet ID. Returns
+ * { slug, token, address, folderUrl, cfSheetUrl } or null if not found.
+ * Used by runPipeline() to surface the final dashboard URL back to the UI.
+ */
+function findMasterIndexRowBySheetId_(sheetId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
+  const last = sheet.getLastRow();
+  if (last < 2) return null;
+  const data = sheet.getRange(2, 1, last - 1, 8).getValues();
+  const cols = BPI_COMMERCIAL.MASTER_COLS;
+  for (const row of data) {
+    if (String(row[cols.sheetId - 1]).trim() === String(sheetId).trim()) {
+      return {
+        slug:       String(row[cols.slug - 1]).trim(),
+        token:      String(row[cols.token - 1] || '').trim(),
+        address:    String(row[cols.address - 1] || '').trim(),
+        folderUrl:  String(row[cols.folderUrl - 1] || '').trim(),
+        cfSheetUrl: String(row[cols.cfSheetUrl - 1] || '').trim(),
+      };
+    }
+  }
+  return null;
 }
 
 

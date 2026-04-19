@@ -218,12 +218,12 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   data.address     = s['Address']      ?? '';
   data.lastUpdated = s['Last Updated'] ?? '';
 
-  // Listing-link keys — the Settings template has drifted to brand-specific
-  // labels ('Real Commercial Link', 'commercial Real Estate Link'). Accept
-  // the canonical names PLUS historical aliases so both new and old deal
-  // sheets render the right brand button.
-  //   - reaLink     → realcommercial.com.au (red brand)
-  //   - propertyUrl → commercialrealestate.com.au (teal brand, Domain)
+  // Listing-link keys — the CF Template Settings uses brand-specific
+  // labels:
+  //   - 'Real Commercial Link'       → realcommercial.com.au (red brand)
+  //   - 'Alternative Real Estate Link' → commercialrealestate.com.au (teal / Domain)
+  // Accept canonical names PLUS historical aliases so older deal sheets
+  // (before the 'Alternative Real Estate Link' rename) still render.
   data.reaLink = s['Real Commercial Link']
     ?? s['realcommercial Link']
     ?? s['Listing Link']
@@ -233,7 +233,8 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
 
   // ── Features ──────────────────────────────────────────────────────────────
   data.features.heroImage   = s['Hero Image URL'] ?? '';
-  data.features.propertyUrl = s['commercial Real Estate Link']
+  data.features.propertyUrl = s['Alternative Real Estate Link']
+    ?? s['commercial Real Estate Link']
     ?? s['Commercial Real Estate Link']
     ?? s['commercialrealestate Link']
     ?? s['Property URL']

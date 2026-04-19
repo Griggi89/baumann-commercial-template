@@ -241,11 +241,15 @@
       google.script.run
         .withSuccessHandler(function(result) {
           resetBtn('btnPipeline', 'Run Pipeline');
+          var dashLine = result.dashboardUrl
+            ? '<br><strong>Dashboard:</strong> <a href="' + result.dashboardUrl + '" target="_blank" rel="noopener">' + result.dashboardUrl + '</a>'
+            : '';
           showResult('pipelineResult',
             '<strong>' + result.message + '</strong><br>' +
             'DD subfolders scanned: ' + result.ddSubfoldersScanned + '<br>' +
             'Files found: ' + result.ddFilesFound + '<br>' +
-            'Tabs populated: ' + (result.tabsPopulated && result.tabsPopulated.length ? result.tabsPopulated.join(', ') : '(none — already populated)')
+            'Tabs populated: ' + (result.tabsPopulated && result.tabsPopulated.length ? result.tabsPopulated.join(', ') : '(none — already populated)') +
+            dashLine
           );
         })
         .withFailureHandler(function(err) {

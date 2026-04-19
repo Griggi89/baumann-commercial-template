@@ -117,6 +117,105 @@ function toSettingsMap(rows: string[][]): Record<string, string> {
 }
 
 /**
+ * Coerce a percentage-like string to a decimal (0.07 for "7%", 0.0618 for "6.18%").
+ * If the value has no % sign it's treated as already-decimal (0.07 stays 0.07).
+ * Values without a % sign that look like percentages (>1) are deliberately NOT
+ * auto-scaled — keeps the behaviour predictable when a formula returns a raw
+ * decimal vs. a number format shows "7%".
+ */
+function toPct(s: string | number | undefined | null): number {
+  if (typeof s === 'number') return isFinite(s) ? s : 0;
+  const raw = (s ?? '').toString();
+  if (!raw.trim()) return 0;
+  const n = toNum(raw);
+  return /%/.test(raw) ? n / 100 : n;
+}
+
+// ── CF Calc direct readers ────────────────────────────────────────────────
+// As of 2026-04-19, the commercial dashboard reads cashflow inputs + the
+// 10-yr projection directly from the Cash Flow Calc tab, not the Settings
+// mirror. Reason: CL1 is deleting the Settings mirror block + the separate
+// Equity Projection tab on the CF template, so the dashboard needs to
+// source those numbers from their canonical home.
+//
+// 36 Allen reference layout (merged col A, labels in col B, values in col C
+// for single-value inputs; projection rows 19+ carry years 1-10 across
+// cols C..L):
+//   Row 2  Purchase price
+//   Row 3  LVR
+//   Row 4  Total Loan $
+//   Row 5  Deposit $
+//   Row 6  Stamp duty
+//   Row 7  Valuation cost
+//   Row 8  Solicitor cost
+//   Row 9  Building Inspection
+//   Row 10 Total cash/equity required
+//   Row 11 Year 1 Net Rental Income
+//   Row 12 Non recoverable Outgoings (Sum)
+//   Row 13 Growth Rate of non recoverables %
+//   Row 14 Net Yield / Cap Rate
+//   Row 15 Yearly review / CPI increase
+//   Row 16 Loan interest rate
+//   Row 17 % of net cash flow used for debt reduction
+//   Row 19 Rent
+//   Row 20 Yearly yield
+//   Row 21 Interest paid
+//   Row 22 Minus Non Recoverable outgoings
+//   Row 23 Net Cash flow (rent less interest - property mgmt/aux)
+//   Row 24 Return on cash (cash on cash)
+//   Row 25 Principal remaining (start of year)
+//   Row 26 Principal paid
+//   Row 27 Remaining Debt
+//   Row 28 Property Value at beginning of year
+//   Row 29 Net Equity (incl. closing cost)
+//   Row 30 Equity gain %
+
+function normalizeLabel(s: string | undefined | null): string {
+  return (s ?? '')
+    .toString()
+    .toLowerCase()
+    .replace(/[()%$,:]/g, '')
+    .replace(/[\n\r]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Find a CF Calc row whose first non-empty cell (col A or col B) matches any needle as a substring. */
+function findCFRow(rows: string[][], ...needles: string[]): string[] | null {
+  const normed = needles.map(normalizeLabel).filter(Boolean);
+  if (normed.length === 0) return null;
+  for (const r of rows) {
+    const labelA = normalizeLabel(r[0]);
+    const labelB = normalizeLabel(r[1]);
+    const label = labelA || labelB;
+    if (!label) continue;
+    if (normed.some((n) => label.includes(n))) return r;
+  }
+  return null;
+}
+
+/** Single-value input: first non-empty cell from col C (index 2) onward. */
+function cfValue(rows: string[][], ...needles: string[]): string {
+  const row = findCFRow(rows, ...needles);
+  if (!row) return '';
+  for (let i = 2; i < row.length; i++) {
+    const v = (row[i] ?? '').trim();
+    if (v) return v;
+  }
+  return '';
+}
+
+/**
+ * 10-yr projection: years 1-10 in cols C..L (indices 2..11). Trailing cols
+ * may hold summary / average values; we only return the first 10.
+ */
+function cfYearlyValues(rows: string[][], ...needles: string[]): string[] {
+  const row = findCFRow(rows, ...needles);
+  if (!row) return [];
+  return row.slice(2, 12).map((c) => (c ?? '').toString());
+}
+
+/**
  * Parse the combined 'Rental ans Sales comps (sqm rates)' tab into two halves.
  *
  * Real-world layout (36 Allen CF, after merged-col-A collapse):
@@ -326,76 +425,131 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     .filter((k) => s[k])
     .map((k) => ({ label: k, value: s[k] }));
 
-  // ── Cashflow (mirrored from CF Calc by the populator into Settings) ──────
-  data.cashflow.purchasePrice      = toNum(s['Purchase Price']);
-  data.cashflow.lvr                = toNum(s['LVR']);
-  data.cashflow.interestRate       = toNum(s['Interest Rate']);
+  // ── Cashflow (CF Calc is source of truth; Settings is soft fallback) ────
+  // Prefer direct read from Cash Flow Calc. Falls back to Settings keys for
+  // legacy deal sheets that still carry the mirror (pre-CL1 cleanup).
+  data.cashflow.purchasePrice      = toNum(cfValue(cashflowRows, 'purchase price'))
+                                     || toNum(s['Purchase Price']);
+  data.cashflow.lvr                = toPct(cfValue(cashflowRows, 'lvr'))
+                                     || toNum(s['LVR']);
+  data.cashflow.interestRate       = toPct(cfValue(cashflowRows, 'loan interest rate', 'interest rate'))
+                                     || toNum(s['Interest Rate']);
   data.cashflow.loanTermYears      = toNum(s['Loan Term Years']) || 30;
-  data.cashflow.annualRent         = toNum(s['Net Annual Rent']) || toNum(s['Annual Rent']);
-  data.cashflow.rentGrowthRate     = toNum(s['Rent Growth Rate']);
-  data.cashflow.capitalGrowthRate       = toNum(s['Capital Growth Rate']);
-  data.cashflow.year1CapitalGrowthRate  = toNum(s['Year 1 Capital Growth Rate']);
-  data.cashflow.expenseGrowthRate  = toNum(s['Expense Growth Rate']);
-  data.cashflow.annualExpenses     = toNum(s['Annual Outgoings']) || toNum(s['Annual Expenses']);
-  data.cashflow.debtReductionPct   = toNum(s['Debt Reduction Pct']) || toNum(s['% Debt Reduction']) || 1;
+  data.cashflow.annualRent         = toNum(cfValue(cashflowRows, 'year 1 net rental income', 'net rental income'))
+                                     || toNum(s['Net Annual Rent']) || toNum(s['Annual Rent']);
+  // Rent + capital both escalate off CPI per the commercial CF Calc model
+  // (triple-net lease, CPI review clause). If the sheet ever separates
+  // them, swap these reads to their own labels.
+  data.cashflow.rentGrowthRate     = toPct(cfValue(cashflowRows, 'yearly review cpi', 'cpi increase', 'rent growth'))
+                                     || toNum(s['Rent Growth Rate']);
+  data.cashflow.capitalGrowthRate  = toPct(cfValue(cashflowRows, 'yearly review cpi', 'cpi increase', 'capital growth'))
+                                     || toNum(s['Capital Growth Rate']);
+  data.cashflow.year1CapitalGrowthRate = toNum(s['Year 1 Capital Growth Rate']);
+  data.cashflow.expenseGrowthRate  = toPct(cfValue(cashflowRows, 'growth rate of non recoverables', 'expense growth'))
+                                     || toNum(s['Expense Growth Rate']);
+  data.cashflow.annualExpenses     = toNum(cfValue(cashflowRows, 'non recoverable outgoings sum', 'non recoverable outgoings', 'annual outgoings'))
+                                     || toNum(s['Annual Outgoings']) || toNum(s['Annual Expenses']);
+  // Debt reduction: CF Calc stores as "100%" (percent), Settings as 1.
+  data.cashflow.debtReductionPct   = toPct(cfValue(cashflowRows, 'net cash flow used for debt reduction', 'debt reduction'))
+                                     || toNum(s['Debt Reduction Pct']) || toNum(s['% Debt Reduction']) || 1;
 
   data.cashflow.upfrontCosts = {
-    deposit:           toNum(s['Deposit']),
-    stampDuty:         toNum(s['Stamp Duty']),
-    gst:               toNum(s['GST']),
-    conveyancing:      toNum(s['Conveyancing']) || toNum(s['Solicitor Cost']),
-    buildingAndPest:   toNum(s['Building and Pest']) || toNum(s['Building Inspection']),
-    valuation:         toNum(s['Valuation']),
+    deposit:           toMoney(cfValue(cashflowRows, 'deposit'))            || toNum(s['Deposit']),
+    stampDuty:         toMoney(cfValue(cashflowRows, 'stamp duty'))         || toNum(s['Stamp Duty']),
+    gst:               toNum(s['GST']),  // no CF Calc row in 36 Allen layout
+    conveyancing:      toMoney(cfValue(cashflowRows, 'solicitor cost', 'conveyancing'))
+                       || toNum(s['Conveyancing']) || toNum(s['Solicitor Cost']),
+    buildingAndPest:   toMoney(cfValue(cashflowRows, 'building inspection', 'building and pest'))
+                       || toNum(s['Building and Pest']) || toNum(s['Building Inspection']),
+    valuation:         toMoney(cfValue(cashflowRows, 'valuation cost', 'valuation'))
+                       || toNum(s['Valuation']),
     buildingInsurance: toNum(s['Building Insurance']),
     titleInsurance:    toNum(s['Title Insurance']),
-    totalRequired:     toNum(s['Total Required']),
+    totalRequired:     toMoney(cfValue(cashflowRows, 'total cash equity required', 'total cash/equity required', 'total required'))
+                       || toNum(s['Total Required']),
   };
 
   data.cashflow.expenseBreakdown = Object.entries(s)
     .filter(([k]) => k.startsWith('Outgoing: ') || k.startsWith('Expense: '))
     .map(([k, v]) => ({ label: k.replace(/^(Outgoing: |Expense: )/, ''), annual: toNum(v) }));
 
-  // Equity Projection: populator writes a dedicated "Equity Projection" tab.
-  // Expanded schema (matches CF Calc 10-yr projection):
-  //   [0] Year
-  //   [1] Rent
-  //   [2] Property Value
-  //   [3] Net Equity
-  //   [4] Net Cashflow
-  //   [5] Yearly Yield           (decimal, e.g. 0.06)
-  //   [6] Interest Paid
-  //   [7] Principal Paid         (can be negative)
-  //   [8] Principal Remaining    (start-of-year loan balance)
-  //   [9] Cash on Cash           (decimal)
-  //
-  // Back-compat: older populators write only cols 0–4. When 5+ are absent,
-  // derive sensible defaults from cashflow inputs below.
-  const eqTab = await fetchTab(sheetId, 'Equity Projection');
-  if (eqTab.length > 1) {
-    const purchase = data.cashflow.purchasePrice;
-    const totalCash = data.cashflow.upfrontCosts.totalRequired;
-    data.cashflow.equityProjection = eqTab.slice(1)
-      .filter((r) => r[0] && !isNaN(Number(r[0])))
-      .map((r) => {
-        const rental = toNum(r[1]);
-        const cashflow = toNum(r[4]);
-        const hasExpanded = r.length >= 10;
-        return {
-          year:               toNum(r[0]),
-          rentalIncome:       rental,
-          totalExpenses:      Math.max(0, rental - cashflow),
-          annualCashflow:     cashflow,
-          rentPerWeek:        Math.round(rental / 52),
-          propertyValue:      toNum(r[2]),
-          netEquity:          toNum(r[3]),
-          netCashflow:        cashflow,
-          yearlyYield:        hasExpanded ? toNum(r[5]) : (purchase ? rental / purchase : 0),
-          interestPaid:       hasExpanded ? toNum(r[6]) : 0,
-          principalPaid:      hasExpanded ? toNum(r[7]) : 0,
-          principalRemaining: hasExpanded ? toNum(r[8]) : 0,
-          cashOnCash:         hasExpanded ? toNum(r[9]) : (totalCash ? cashflow / totalCash : 0),
-        };
+  // ── 10-yr projection (CF Calc is source of truth) ──────────────────────
+  // Read directly from Cash Flow Calc rows 19-30 (Rent / Yearly yield /
+  // Interest paid / Non-recoverable outgoings / Net Cash flow / Cash on
+  // cash / Principal remaining / Principal paid / Property value / Net
+  // equity). Falls back to the legacy "Equity Projection" tab for deal
+  // sheets that still have it (pre-CL1 cleanup).
+  const rentYr          = cfYearlyValues(cashflowRows, 'rent');
+  const yieldYr         = cfYearlyValues(cashflowRows, 'yearly yield');
+  const interestYr      = cfYearlyValues(cashflowRows, 'interest paid');
+  const nonRecYr        = cfYearlyValues(cashflowRows, 'minus non recoverable outgoings', 'non recoverable outgoings');
+  const netCashflowYr   = cfYearlyValues(cashflowRows, 'net cash flow');
+  const cashOnCashYr    = cfYearlyValues(cashflowRows, 'return on cash', 'cash on cash');
+  const principalRemYr  = cfYearlyValues(cashflowRows, 'principal remaining');
+  const principalPaidYr = cfYearlyValues(cashflowRows, 'principal paid');
+  const propValueYr     = cfYearlyValues(cashflowRows, 'property value at beginning of year', 'property value');
+  const netEquityYr     = cfYearlyValues(cashflowRows, 'net equity');
+
+  const fromCFCalc = rentYr.length > 0 || interestYr.length > 0;
+  if (fromCFCalc) {
+    const yearCount = Math.min(10, Math.max(
+      rentYr.length, interestYr.length, netCashflowYr.length, propValueYr.length,
+    ));
+    const projection = [];
+    for (let i = 0; i < yearCount; i++) {
+      const rental   = toMoney(rentYr[i]);
+      const cashflow = toMoney(netCashflowYr[i]);
+      projection.push({
+        year:               i + 1,
+        rentalIncome:       rental,
+        totalExpenses:      toMoney(nonRecYr[i]),
+        annualCashflow:     cashflow,
+        rentPerWeek:        rental ? Math.round(rental / 52) : 0,
+        propertyValue:      toMoney(propValueYr[i]),
+        netEquity:          toMoney(netEquityYr[i]),
+        netCashflow:        cashflow,
+        yearlyYield:        toPct(yieldYr[i]),
+        interestPaid:       toMoney(interestYr[i]),
+        principalPaid:      toMoney(principalPaidYr[i]),
+        principalRemaining: toMoney(principalRemYr[i]),
+        cashOnCash:         toPct(cashOnCashYr[i]),
       });
+    }
+    data.cashflow.equityProjection = projection;
+  } else {
+    // Legacy path: some deal sheets still carry the populator-written
+    // "Equity Projection" tab. Kept as a soft fallback during rollout;
+    // can be deleted once no deals carry it (probably a week out).
+    // Schema: [Year, Rent, Property Value, Net Equity, Net Cashflow,
+    //         Yearly Yield, Interest Paid, Principal Paid,
+    //         Principal Remaining, Cash on Cash].
+    const eqTab = await fetchTab(sheetId, 'Equity Projection');
+    if (eqTab.length > 1) {
+      const purchase = data.cashflow.purchasePrice;
+      const totalCash = data.cashflow.upfrontCosts.totalRequired;
+      data.cashflow.equityProjection = eqTab.slice(1)
+        .filter((r) => r[0] && !isNaN(Number(r[0])))
+        .map((r) => {
+          const rental = toNum(r[1]);
+          const cashflow = toNum(r[4]);
+          const hasExpanded = r.length >= 10;
+          return {
+            year:               toNum(r[0]),
+            rentalIncome:       rental,
+            totalExpenses:      Math.max(0, rental - cashflow),
+            annualCashflow:     cashflow,
+            rentPerWeek:        Math.round(rental / 52),
+            propertyValue:      toNum(r[2]),
+            netEquity:          toNum(r[3]),
+            netCashflow:        cashflow,
+            yearlyYield:        hasExpanded ? toNum(r[5]) : (purchase ? rental / purchase : 0),
+            interestPaid:       hasExpanded ? toNum(r[6]) : 0,
+            principalPaid:      hasExpanded ? toNum(r[7]) : 0,
+            principalRemaining: hasExpanded ? toNum(r[8]) : 0,
+            cashOnCash:         hasExpanded ? toNum(r[9]) : (totalCash ? cashflow / totalCash : 0),
+          };
+        });
+    }
   }
 
   // ── SQM Rate Assessment (combined rent + sales) ───────────────────────────

@@ -301,6 +301,48 @@ html.mob .dashboard-main section {
   #disclaimer > div:last-child {
     flex-direction: column !important;
   }
+
+  /* ── Tables: force horizontal scroll instead of letter-by-letter wrap ──
+     Without this, narrow-viewport tables compress column widths so far
+     that header text and money values wrap character-by-character
+     ("SOLD" → S/O/L/D, "$4,200" → $4,2/00). overflow-x:auto on the
+     wrapper already exists; we just need to stop the cells from
+     collapsing. */
+  .dashboard-main table th,
+  .dashboard-main table td {
+    white-space: nowrap !important;
+  }
+  /* Exception: address / multi-line text cells in comparable tables
+     should still wrap — they're long and need to be readable. */
+  .dashboard-main table td:first-child:not(:only-child) {
+    white-space: normal !important;
+  }
+
+  /* Hero listing-portal buttons: left-align on mobile (they were
+     right-aligned on desktop via justify-content:flex-end, which looks
+     out of place once the content stacks). */
+  #features > div[style*="justify-content: space-between"] {
+    justify-content: flex-start !important;
+  }
+  #features > div[style*="justify-content: space-between"] > div:last-child {
+    justify-content: flex-start !important;
+  }
+
+  /* Recharts legend: wrap items cleanly, center them, give each item
+     space so "Rental Income" / "Interest + outgoings" / "Net Cashflow"
+     don't split awkwardly across lines. */
+  .recharts-legend-wrapper {
+    padding-top: 8px !important;
+  }
+  .recharts-default-legend {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px 14px !important;
+  }
+  .recharts-legend-item {
+    margin-right: 0 !important;
+  }
 }
 
 /* Print / Save as PDF styles */

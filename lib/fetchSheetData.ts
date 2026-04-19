@@ -499,7 +499,11 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   // sheets that still have it (pre-CL1 cleanup).
   const rentYr          = cfYearlyValues(cashflowRows, 'rent');
   const yieldYr         = cfYearlyValues(cashflowRows, 'yearly yield');
-  const interestYr      = cfYearlyValues(cashflowRows, 'interest paid');
+  // Label on 36 Allen (canonical template) is "Interest due". Older deal
+  // sheets written by the populator's Equity Projection tab used "Interest
+  // Paid". Accept both. Input row "Loan interest rate" is excluded by the
+  // ≥3-filled-year-cells guard inside cfYearlyValues.
+  const interestYr      = cfYearlyValues(cashflowRows, 'interest due', 'interest paid');
   const nonRecYr        = cfYearlyValues(cashflowRows, 'minus non recoverable outgoings', 'non recoverable outgoings');
   const netCashflowYr   = cfYearlyValues(cashflowRows, 'net cash flow');
   const cashOnCashYr    = cfYearlyValues(cashflowRows, 'return on cash', 'cash on cash');

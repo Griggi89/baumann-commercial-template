@@ -320,11 +320,11 @@ export default function CashflowSection() {
                     <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Net Annual CF</th>
                     {hasAmort && (
                       <>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Yearly Yield</th>
                         <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Interest Paid</th>
                         <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Principal Paid</th>
                         <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Principal Remaining</th>
                         <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Cash on Cash</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 600, fontSize: '0.8rem' }}>Yearly Yield</th>
                       </>
                     )}
                   </tr>
@@ -351,7 +351,6 @@ export default function CashflowSection() {
                         <td style={{ padding: '10px 14px', color: cashflowColor, fontWeight: 600 }}>{fmtSigned(Math.round(row.netCashflow))}</td>
                         {hasAmort && (
                           <>
-                            <td style={{ padding: '10px 14px', color: '#374151' }}>{row.yearlyYield ? (row.yearlyYield * 100).toFixed(2) + '%' : '—'}</td>
                             <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 500 }}>
                               {row.interestPaid ? '-$' + Math.round(row.interestPaid).toLocaleString() : '—'}
                             </td>
@@ -366,6 +365,7 @@ export default function CashflowSection() {
                             <td style={{ padding: '10px 14px', color: cocColor, fontWeight: 600 }}>
                               {row.cashOnCash ? (row.cashOnCash * 100).toFixed(2) + '%' : '—'}
                             </td>
+                            <td style={{ padding: '10px 14px', color: '#374151' }}>{row.yearlyYield ? (row.yearlyYield * 100).toFixed(2) + '%' : '—'}</td>
                           </>
                         )}
                       </tr>
@@ -388,11 +388,11 @@ export default function CashflowSection() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <tbody>
                 {[
-                  { label: `Deposit (${100 - Math.round((cashflow.lvr ?? 0) * 100)}%)`, value: cashflow.upfrontCosts.deposit },
+                  { label: `Deposit (${100 - Math.round((cashflow.lvr ?? 0) * 100)}%, est.)`, value: cashflow.upfrontCosts.deposit },
                   { label: 'Stamp Duty (est.)', value: cashflow.upfrontCosts.stampDuty },
-                  { label: 'Conveyancing', value: cashflow.upfrontCosts.conveyancing },
-                  { label: 'Building & Pest Inspection', value: cashflow.upfrontCosts.buildingAndPest },
-                  { label: 'Valuation (lender-required)', value: cashflow.upfrontCosts.valuation ?? 0 },
+                  { label: 'Conveyancing (est.)', value: cashflow.upfrontCosts.conveyancing },
+                  { label: 'Building & Pest Inspection (est.)', value: cashflow.upfrontCosts.buildingAndPest },
+                  { label: 'Valuation (est., lender-required)', value: cashflow.upfrontCosts.valuation ?? 0 },
                   { label: 'Building Insurance (est.)', value: cashflow.upfrontCosts.buildingInsurance },
                   { label: 'Title Insurance (est.)', value: cashflow.upfrontCosts.titleInsurance },
                 ].filter(item => item.value > 0 || ['Deposit', 'Stamp Duty', 'Conveyancing'].some(k => item.label.startsWith(k))).map((item, i, arr) => (

@@ -107,7 +107,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#E4002B',   // REA Group brand red
+                backgroundColor: '#002855',   // realcommercial.com.au site navy
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',

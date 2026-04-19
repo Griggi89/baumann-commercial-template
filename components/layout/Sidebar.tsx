@@ -23,7 +23,7 @@ const NAV_ITEMS: { id: string; label: string; badge?: string }[] = [
   { id: 'suburb',          label: 'Suburb Profile' },
   { id: 'government',      label: 'Infrastructure Projects' },
   { id: 'industries',      label: 'Local Industries' },
-  { id: 'drive-repo',      label: 'Drive Repo' },
+  { id: 'drive-repo',      label: 'Repository' },
   { id: 'ask-claude',      label: 'Ask ChristAIn', badge: 'NEW' },
   { id: 'disclaimer',      label: 'Disclaimer' },
 ];

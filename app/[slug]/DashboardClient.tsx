@@ -15,8 +15,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import FeaturesSection             from '@/components/sections/FeaturesSection';
 import ExecutiveSummarySection     from '@/components/sections/ExecutiveSummarySection';
 import CashflowSection             from '@/components/sections/CashflowSection';
-import RentalAssessmentSection     from '@/components/sections/RentalAssessmentSection';
-import SalesComparablesSection     from '@/components/sections/SalesComparablesSection';
+import SQMRateAssessmentSection    from '@/components/sections/SQMRateAssessmentSection';
 import TenantLeaseSection          from '@/components/sections/TenantLeaseSection';
 import DueDiligenceSection         from '@/components/sections/DueDiligenceSection';
 import LocationSection             from '@/components/sections/LocationSection';
@@ -31,8 +30,7 @@ const SECTION_IDS = [
   'features',
   'summary',
   'cashflow',
-  'rental',
-  'sales',
+  'sqm-rate',
   'tenant',
   'due-diligence',
   'location',
@@ -202,8 +200,7 @@ function DashboardContent() {
           <FeaturesSection />
           <ExecutiveSummarySection />
           <CashflowSection />
-          <RentalAssessmentSection />
-          <SalesComparablesSection />
+          <SQMRateAssessmentSection />
           <TenantLeaseSection />
           <DueDiligenceSection />
           <LocationSection />

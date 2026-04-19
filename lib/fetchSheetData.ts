@@ -293,53 +293,58 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
       });
   }
 
-  // ── Rental Assessment (sqm rates) ─────────────────────────────────────────
-  data.rentalAssessment.spreadsheetUrl = s['Rental Assessment URL'] ?? '';
-  if (combined && (combined.rental.rows.length > 0 || combined.rental.summary.length > 0)) {
-    data.rentalAssessment.summary     = combined.rental.summary;
-    data.rentalAssessment.comparables = { headers: combined.rental.headers, rows: combined.rental.rows };
-  } else if (rentalRows.length > 0) {
-    // Legacy separate tab parser.
-    const summary: { label: string; value: string }[] = [];
-    const compRows: string[][] = [];
-    let headers: string[] = [];
-    let inComps = false;
-    for (const r of rentalRows) {
-      if (!inComps && r[0] && r[1] && !r[2]) {
-        summary.push({ label: r[0], value: r[1] });
-      } else if (!inComps && r[0] && r.length > 2) {
-        headers = r;
-        inComps = true;
-      } else if (inComps) {
-        compRows.push(r);
-      }
-    }
-    data.rentalAssessment.summary = summary;
-    data.rentalAssessment.comparables = { headers, rows: compRows };
-  }
+  // ── SQM Rate Assessment (combined rent + sales) ───────────────────────────
+  // Prefer the consolidated 'Rental ans Sales comps (sqm rates)' tab. Falls
+  // back to the legacy separate tabs so older deal sheets still render.
+  data.sqmRateAssessment.spreadsheetUrl = s['Rental Assessment URL'] ?? '';
 
-  // ── Sales Comparables ─────────────────────────────────────────────────────
-  if (combined && (combined.sales.rows.length > 0 || combined.sales.summary.length > 0)) {
-    data.salesComparables.summary = combined.sales.summary;
-    data.salesComparables.table   = { headers: combined.sales.headers, rows: combined.sales.rows };
-  } else if (salesRows.length > 0) {
-    // Legacy separate tab parser.
-    const summary: { label: string; value: string }[] = [];
-    const tblRows: string[][] = [];
-    let headers: string[] = [];
-    let inTable = false;
-    for (const r of salesRows) {
-      if (!inTable && r[0] && r[1] && !r[2]) {
-        summary.push({ label: r[0], value: r[1] });
-      } else if (!inTable && r[0] && r.length > 2) {
-        headers = r;
-        inTable = true;
-      } else if (inTable) {
-        tblRows.push(r);
+  if (combined && (combined.sales.rows.length > 0 || combined.rental.rows.length > 0 ||
+                   combined.sales.summary.length > 0 || combined.rental.summary.length > 0)) {
+    data.sqmRateAssessment.sales = {
+      summary:     combined.sales.summary,
+      comparables: { headers: combined.sales.headers, rows: combined.sales.rows },
+    };
+    data.sqmRateAssessment.rent = {
+      summary:     combined.rental.summary,
+      comparables: { headers: combined.rental.headers, rows: combined.rental.rows },
+    };
+  } else {
+    // Legacy: two separate tabs. Tolerated only for back-compat with deal
+    // sheets created before the CF template was consolidated.
+    if (rentalRows.length > 0) {
+      const summary: { label: string; value: string }[] = [];
+      const compRows: string[][] = [];
+      let headers: string[] = [];
+      let inComps = false;
+      for (const r of rentalRows) {
+        if (!inComps && r[0] && r[1] && !r[2]) {
+          summary.push({ label: r[0], value: r[1] });
+        } else if (!inComps && r[0] && r.length > 2) {
+          headers = r;
+          inComps = true;
+        } else if (inComps) {
+          compRows.push(r);
+        }
       }
+      data.sqmRateAssessment.rent = { summary, comparables: { headers, rows: compRows } };
     }
-    data.salesComparables.summary = summary;
-    data.salesComparables.table = { headers, rows: tblRows };
+    if (salesRows.length > 0) {
+      const summary: { label: string; value: string }[] = [];
+      const tblRows: string[][] = [];
+      let headers: string[] = [];
+      let inTable = false;
+      for (const r of salesRows) {
+        if (!inTable && r[0] && r[1] && !r[2]) {
+          summary.push({ label: r[0], value: r[1] });
+        } else if (!inTable && r[0] && r.length > 2) {
+          headers = r;
+          inTable = true;
+        } else if (inTable) {
+          tblRows.push(r);
+        }
+      }
+      data.sqmRateAssessment.sales = { summary, comparables: { headers, rows: tblRows } };
+    }
   }
 
   // ── Lease & Tenant Insights (from Settings) ───────────────────────────────

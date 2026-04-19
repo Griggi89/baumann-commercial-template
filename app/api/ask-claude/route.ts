@@ -41,8 +41,8 @@ Website: baumannproperty.com.au | Email: christian@baumannproperty.com.au`;
 
   const details       = pd.features?.details?.map(d => `${d.label}: ${d.value}`).join(', ') || '';
   const tenantItems   = pd.tenantLease?.items?.map(i => `${i.label}: ${i.value}`).join('; ') || '';
-  const rentalSummary = pd.rentalAssessment?.summary?.map(i => `${i.label}: ${i.value}`).join('; ') || '';
-  const salesSummary  = pd.salesComparables?.summary?.map(i => `${i.label}: ${i.value}`).join('; ') || '';
+  const rentalSummary = pd.sqmRateAssessment?.rent?.summary?.map((i: { label: string; value: string }) => `${i.label}: ${i.value}`).join('; ') || '';
+  const salesSummary  = pd.sqmRateAssessment?.sales?.summary?.map((i: { label: string; value: string }) => `${i.label}: ${i.value}`).join('; ') || '';
   const suburb        = pd.suburbProfile?.summary?.map(i => `${i.label}: ${i.value}`).join('; ') || '';
   const distances     = pd.location?.distances?.slice(0, 9).map(d => `${d.place} (${d.distance}${d.driveTime ? ', ' + d.driveTime : ''})`).join('; ') || '';
   const projects      = pd.government?.projects?.map(p => p.title).join('; ') || '';
@@ -82,10 +82,10 @@ GROWTH ASSUMPTIONS:
 - Capital growth: ${fmtPct(cf.capitalGrowthRate, 0)} p.a.
 - Rent review: ${fmtPct(cf.rentGrowthRate, 0)} p.a. (yearly review / CPI)
 
-RENTAL ASSESSMENT (sqm rates):
+SQM RATE ASSESSMENT — Rent:
 ${rentalSummary ? '- ' + rentalSummary : '- (not yet populated)'}
 
-SALES COMPARABLES:
+SQM RATE ASSESSMENT — Sales:
 ${salesSummary ? '- ' + salesSummary : '- (not yet populated)'}
 
 SUBURB MARKET PROFILE:

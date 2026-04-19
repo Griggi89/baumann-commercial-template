@@ -125,39 +125,35 @@ export const demoPropertyData: PropertyData = {
     })(),
   },
 
-  rentalAssessment: {
+  sqmRateAssessment: {
     spreadsheetUrl: '',
-    summary: [
-      { label: 'Passing rent $/sqm',           value: '$171' },
-      { label: 'Market rent $/sqm',            value: '$175' },
-      { label: 'Net lettable area',            value: '350 sqm' },
-      { label: 'Sunshine Coast commercial vacancy', value: '5.1%' },
-    ],
-    comparables: {
-      headers: ['Address', 'Area (sqm)', 'Rent $/sqm', 'Lease Term'],
-      rows: [
-        ['12 First Avenue, Maroochydore',       '320',   '$165', '5 + 5 yrs'],
-        ['90 Aerodrome Road, Maroochydore',     '410',   '$180', '7 + 5 yrs'],
-        ['33 Horton Parade, Maroochydore',      '280',   '$188', '3 + 3 yrs'],
-        ['5 Plaza Parade, Maroochydore',        '520',   '$170', '10 yrs'],
+    sales: {
+      summary: [
+        { label: 'Average $/sqm', value: '$2,850' },
       ],
+      comparables: {
+        headers: ['Address', 'Sold Date', 'Sold Price', '$/sqm', 'Cap Rate'],
+        rows: [
+          ['80 Aerodrome Road, Maroochydore',    '2025-11', '$1.15M', '$2,900', '5.85%'],
+          ['17 First Avenue, Maroochydore',      '2025-09', '$860k',  '$2,700', '6.20%'],
+          ['45 Maroochydore Road, Maroochydore', '2026-01', '$1.35M', '$3,050', '5.95%'],
+          ['102 Aerodrome Road, Maroochydore',   '2025-08', '$1.05M', '$2,750', '6.10%'],
+        ],
+      },
     },
-  },
-
-  salesComparables: {
-    summary: [
-      { label: 'Market cap rate',                 value: '6.00%' },
-      { label: 'Weighted Average Cap Rate',       value: '6.10%' },
-      { label: '$/sqm range',                     value: '$2,500 – $3,100' },
-    ],
-    table: {
-      headers: ['Address', 'Sale Price', '$/sqm', 'Cap Rate', 'Date'],
-      rows: [
-        ['80 Aerodrome Road, Maroochydore',         '$1.15M', '$2,900', '5.85%', '2025-11'],
-        ['17 First Avenue, Maroochydore',           '$860k',  '$2,700', '6.20%', '2025-09'],
-        ['45 Maroochydore Road, Maroochydore',      '$1.35M', '$3,050', '5.95%', '2026-01'],
-        ['102 Aerodrome Road, Maroochydore',        '$1.05M', '$2,750', '6.10%', '2025-08'],
+    rent: {
+      summary: [
+        { label: 'Average $/sqm', value: '$176' },
       ],
+      comparables: {
+        headers: ['Address', 'Lease Date', '$ Lease per year', 'Sqm', '$/sqm'],
+        rows: [
+          ['12 First Avenue, Maroochydore',   '2024-08', '$52,800', '320', '$165'],
+          ['90 Aerodrome Road, Maroochydore', '2024-11', '$73,800', '410', '$180'],
+          ['33 Horton Parade, Maroochydore',  '2025-02', '$52,640', '280', '$188'],
+          ['5 Plaza Parade, Maroochydore',    '2023-10', '$88,400', '520', '$170'],
+        ],
+      },
     },
   },
 

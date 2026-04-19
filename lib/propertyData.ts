@@ -73,17 +73,23 @@ export interface PropertyData {
     }[];
   };
 
-  // Commercial-specific
-  rentalAssessment: {
+  // Commercial-specific — consolidated per CL1 addendum 2026-04-19_1325.
+  // Sourced from the combined 'Rental ans Sales comps (sqm rates)' tab,
+  // split into a sales block (top) and rent block (bottom).
+  //
+  // Each side has:
+  //   - summary[]    — the "Average per sqm" row(s) (highlight-worthy totals)
+  //   - comparables  — headers + data rows as-is from the sheet
+  sqmRateAssessment: {
     spreadsheetUrl: string;
-    summary: { label: string; value: string }[];
-    comparables: { headers: string[]; rows: string[][] };
-  };
-
-  // Commercial-specific
-  salesComparables: {
-    summary: { label: string; value: string }[];
-    table: { headers: string[]; rows: string[][] };
+    sales: {
+      summary: { label: string; value: string }[];
+      comparables: { headers: string[]; rows: string[][] };
+    };
+    rent: {
+      summary: { label: string; value: string }[];
+      comparables: { headers: string[]; rows: string[][] };
+    };
   };
 
   location: {
@@ -194,15 +200,10 @@ export const defaultPropertyData: PropertyData = {
     equityProjection: [],
   },
 
-  rentalAssessment: {
+  sqmRateAssessment: {
     spreadsheetUrl: '',
-    summary: [],
-    comparables: { headers: [], rows: [] },
-  },
-
-  salesComparables: {
-    summary: [],
-    table: { headers: [], rows: [] },
+    sales: { summary: [], comparables: { headers: [], rows: [] } },
+    rent:  { summary: [], comparables: { headers: [], rows: [] } },
   },
 
   location: { lat: 0, lng: 0, mapBbox: '', distances: [] },

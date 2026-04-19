@@ -36,27 +36,11 @@ function hostnameOf(url: string): string {
   }
 }
 
-/**
- * Brand background colour for the Alternative Listing button, derived from
- * the hostname. Falls back to a neutral slate for unknown brokers so the
- * button is always readable without having to curate every domain.
- */
-function altListingBg(url: string): string {
-  const host = hostnameOf(url).toLowerCase();
-  if (host.includes('colliers'))                return '#C8102E';  // Colliers red
-  if (host.includes('cbre'))                    return '#17331A';  // CBRE dark green
-  if (host.includes('jll'))                     return '#E31837';  // JLL red
-  if (host.includes('cushman'))                 return '#005172';  // Cushman & Wakefield navy
-  if (host.includes('knightfrank'))             return '#161D27';  // Knight Frank navy/charcoal
-  if (host.includes('raywhite'))                return '#FFE500';  // Ray White yellow
-  if (host.includes('commercialrealestate'))    return '#005151';  // Domain commercialrealestate teal
-  return '#334155';                                                // neutral slate fallback
-}
-
-/** Text colour that reads against altListingBg (mostly white, except Ray White yellow). */
-function altListingFg(url: string): string {
-  return hostnameOf(url).toLowerCase().includes('raywhite') ? '#000' : '#fff';
-}
+// All listing-portal buttons use the realcommercial.com.au brand blue.
+// Chris's call 2026-04-19 — one consistent colour reads better in the
+// hero than per-broker branding, which was creating visual noise.
+const LISTING_BUTTON_BG = '#0073E6';
+const LISTING_BUTTON_FG = '#FFFFFF';
 
 export default function FeaturesSection() {
   const propertyData = usePropertyData();
@@ -116,8 +100,8 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: altListingBg(features.propertyUrl),
-                color: altListingFg(features.propertyUrl),
+                backgroundColor: LISTING_BUTTON_BG,
+                color: LISTING_BUTTON_FG,
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 padding: '10px 20px',
@@ -139,7 +123,7 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#002855',   // realcommercial.com.au site navy
+                backgroundColor: LISTING_BUTTON_BG,
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.875rem',

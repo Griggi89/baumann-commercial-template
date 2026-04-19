@@ -5,7 +5,7 @@
 // reviewers see a finished commercial dashboard at a glance.
 // ───────────────────────────────────────────────────────────────────────────
 
-import DashboardClient from '../deals/[slug]/DashboardClient';
+import DashboardClient from '../[slug]/DashboardClient';
 import { demoPropertyData } from '@/lib/demoPropertyData';
 
 export const metadata = {

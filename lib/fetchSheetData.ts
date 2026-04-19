@@ -18,8 +18,14 @@ import { defaultPropertyData } from './propertyData';
 export const SHEET_TABS = {
   SETTINGS:        'Settings',
   CASHFLOW:        'Cash FLow Calc',
+  // Legacy separate tabs — still read as fallback when the combined tab
+  // below is empty (covers deals created before the CF template was
+  // consolidated).
   RENTAL:          'Rental Assessment (sqm rates)',
   SALES:           'Sales Comparables',
+  // New consolidated tab (Chris's template update). Note the 'ans' typo
+  // in the tab name is deliberate — matches what's on the live template.
+  RENTAL_AND_SALES: 'Rental ans Sales comps (sqm rates)',
   DD:              'Due Diligence',
   INDUSTRIES:      'Industries',
   INFRASTRUCTURE:  'Infrastructure Projects',
@@ -96,6 +102,71 @@ function toSettingsMap(rows: string[][]): Record<string, string> {
   return map;
 }
 
+/**
+ * Parse the combined 'Rental ans Sales comps (sqm rates)' tab into two halves.
+ *
+ * Layout (per Chris's consolidated template):
+ *   [Sales Comparables header marker]
+ *   Column headers (Address, Sale Price, $/sqm, Cap Rate, Date, ...)
+ *   Data rows
+ *   Average per sqm row (highlighted yellow in-sheet)
+ *   [Rent Comparables header marker]
+ *   Column headers (Address, Lease Date, $ Lease per year, Sqm, $/sqm, ...)
+ *   Data rows
+ *   Average per sqm row
+ *
+ * Section boundary detection: col A text transitioning between 'sales' and
+ * 'rent' prefixes. 'Average ...' rows get routed to the section's summary.
+ */
+function parseCombinedRentSales(rows: string[][]): {
+  sales:  { headers: string[]; rows: string[][]; summary: { label: string; value: string }[] };
+  rental: { headers: string[]; rows: string[][]; summary: { label: string; value: string }[] };
+} {
+  const sales  = { headers: [] as string[], rows: [] as string[][], summary: [] as { label: string; value: string }[] };
+  const rental = { headers: [] as string[], rows: [] as string[][], summary: [] as { label: string; value: string }[] };
+
+  let section: 'sales' | 'rental' | null = null;
+  let gotHeaders = false;
+
+  for (const r of rows) {
+    const a = (r[0] ?? '').toLowerCase().trim();
+
+    // Section switches (check BEFORE other classifications so a marker row
+    // doesn't get captured as headers/data).
+    if (a.includes('sales') && a.includes('comparable')) {
+      section = 'sales'; gotHeaders = false; continue;
+    }
+    if (a.includes('rent')  && a.includes('comparable')) {
+      section = 'rental'; gotHeaders = false; continue;
+    }
+    if (!section) continue;
+
+    const target = section === 'sales' ? sales : rental;
+
+    // Average summary row — label/value pair, route to summary, not the grid.
+    if (a.startsWith('average')) {
+      // Pick the last non-empty numeric-looking cell as the value.
+      const val = [...r].reverse().find((c) => c && c.trim() !== '') ?? '';
+      target.summary.push({ label: r[0], value: val });
+      continue;
+    }
+
+    // First non-empty row after a section marker = headers.
+    if (!gotHeaders) {
+      target.headers = r.filter((c) => c && c.trim() !== '');
+      gotHeaders = true;
+      continue;
+    }
+
+    // Data row — include if it has any content besides col A.
+    if (r.slice(1).some((c) => c && c.trim() !== '')) {
+      target.rows.push(r);
+    }
+  }
+
+  return { sales, rental };
+}
+
 export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
   if (!sheetId) return defaultPropertyData;
   try {
@@ -111,18 +182,24 @@ export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
 
 async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   const [
-    settingsRows, cashflowRows, rentalRows, salesRows,
+    settingsRows, cashflowRows, rentalRows, salesRows, combinedRows,
     ddRows, industriesRows, infraRows, distancesRows,
   ] = await Promise.all([
     fetchTab(sheetId, SHEET_TABS.SETTINGS),       // Settings tab by name (CF template has Cash FLow Calc at gid=0, not Settings)
     fetchTab(sheetId, SHEET_TABS.CASHFLOW),
-    fetchTab(sheetId, SHEET_TABS.RENTAL),
-    fetchTab(sheetId, SHEET_TABS.SALES),
+    fetchTab(sheetId, SHEET_TABS.RENTAL),          // legacy — kept for back-compat with older deal sheets
+    fetchTab(sheetId, SHEET_TABS.SALES),           // legacy — same
+    fetchTab(sheetId, SHEET_TABS.RENTAL_AND_SALES),// combined tab (current template)
     fetchTab(sheetId, SHEET_TABS.DD),
     fetchTab(sheetId, SHEET_TABS.INDUSTRIES),
     fetchTab(sheetId, SHEET_TABS.INFRASTRUCTURE),
     fetchTab(sheetId, SHEET_TABS.DISTANCES),
   ]);
+
+  // Prefer the consolidated tab when present; split it into the two halves
+  // the UI already expects. If it's missing (older deal sheets) we fall
+  // through to the separate tab parsers below.
+  const combined = combinedRows.length > 0 ? parseCombinedRentSales(combinedRows) : null;
 
   const s = toSettingsMap(settingsRows);
   const data: PropertyData = JSON.parse(JSON.stringify(defaultPropertyData));
@@ -218,7 +295,11 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
 
   // ── Rental Assessment (sqm rates) ─────────────────────────────────────────
   data.rentalAssessment.spreadsheetUrl = s['Rental Assessment URL'] ?? '';
-  if (rentalRows.length > 0) {
+  if (combined && (combined.rental.rows.length > 0 || combined.rental.summary.length > 0)) {
+    data.rentalAssessment.summary     = combined.rental.summary;
+    data.rentalAssessment.comparables = { headers: combined.rental.headers, rows: combined.rental.rows };
+  } else if (rentalRows.length > 0) {
+    // Legacy separate tab parser.
     const summary: { label: string; value: string }[] = [];
     const compRows: string[][] = [];
     let headers: string[] = [];
@@ -238,7 +319,11 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   }
 
   // ── Sales Comparables ─────────────────────────────────────────────────────
-  if (salesRows.length > 0) {
+  if (combined && (combined.sales.rows.length > 0 || combined.sales.summary.length > 0)) {
+    data.salesComparables.summary = combined.sales.summary;
+    data.salesComparables.table   = { headers: combined.sales.headers, rows: combined.sales.rows };
+  } else if (salesRows.length > 0) {
+    // Legacy separate tab parser.
     const summary: { label: string; value: string }[] = [];
     const tblRows: string[][] = [];
     let headers: string[] = [];

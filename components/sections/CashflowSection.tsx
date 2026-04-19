@@ -305,28 +305,30 @@ export default function CashflowSection() {
                 </tr>
               </thead>
               <tbody>
-                {/* Year 0 — purchase baseline (only if not already in projection data) */}
-                {!cashflow.equityProjection.some(r => r.year === 0) && (
-                <tr style={{ borderBottom: '1px solid #F3F4F6', backgroundColor: '#fff' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a2b3c' }}>Year 0</td>
-                  <td style={{ padding: '10px 14px', color: '#374151' }}>${Math.round(cashflow.annualRent / 52)}</td>
-                  <td style={{ padding: '10px 14px', color: '#374151' }}>${cashflow.purchasePrice.toLocaleString()}</td>
-                  <td style={{ padding: '10px 14px', color: '#22C55E', fontWeight: 600 }}>${(cashflow.purchasePrice * (1 - cashflow.lvr)).toLocaleString()}</td>
-                  <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 600 }}>{netAnnualCashflow < 0 ? `-$${Math.abs(Math.round(netAnnualCashflow)).toLocaleString()}` : `$${Math.round(netAnnualCashflow).toLocaleString()}`}</td>
-                </tr>
-                )}
-                {cashflow.equityProjection.map((row, i) => (
-                  <tr
-                    key={row.year}
-                    style={{ borderBottom: i < cashflow.equityProjection.length - 1 ? '1px solid #F3F4F6' : 'none', backgroundColor: (i + 1) % 2 === 0 ? '#fff' : '#F9FAFB' }}
-                  >
-                    <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a2b3c' }}>Year {row.year}</td>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>${Math.round(row.rentalIncome).toLocaleString()}</td>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>${row.propertyValue.toLocaleString()}</td>
-                    <td style={{ padding: '10px 14px', color: '#22C55E', fontWeight: 600 }}>${row.netEquity.toLocaleString()}</td>
-                    <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 600 }}>{row.netCashflow < 0 ? `-$${Math.abs(row.netCashflow).toLocaleString()}` : `$${row.netCashflow.toLocaleString()}`}</td>
-                  </tr>
-                ))}
+                {/* Year 0 (purchase baseline) intentionally omitted — the
+                    projection starts at Year 1. Purchase Price + deposit
+                    position is already surfaced in the Executive Summary
+                    cards above. Including a Y0 row here conflated two
+                    different "Net Equity" measures (initial deposit vs
+                    ongoing equity position) and put a weekly rent figure
+                    in a per-year column. */}
+                {cashflow.equityProjection.map((row, i) => {
+                  const equityColor    = row.netEquity   < 0 ? '#EF4444' : '#22C55E';
+                  const cashflowColor  = row.netCashflow < 0 ? '#EF4444' : '#22C55E';
+                  const fmtSigned = (n: number) => n < 0 ? `-$${Math.abs(n).toLocaleString()}` : `$${n.toLocaleString()}`;
+                  return (
+                    <tr
+                      key={row.year}
+                      style={{ borderBottom: i < cashflow.equityProjection.length - 1 ? '1px solid #F3F4F6' : 'none', backgroundColor: (i + 1) % 2 === 0 ? '#fff' : '#F9FAFB' }}
+                    >
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a2b3c' }}>Year {row.year}</td>
+                      <td style={{ padding: '10px 14px', color: '#374151' }}>${Math.round(row.rentalIncome).toLocaleString()}</td>
+                      <td style={{ padding: '10px 14px', color: '#374151' }}>${row.propertyValue.toLocaleString()}</td>
+                      <td style={{ padding: '10px 14px', color: equityColor,   fontWeight: 600 }}>{fmtSigned(Math.round(row.netEquity))}</td>
+                      <td style={{ padding: '10px 14px', color: cashflowColor, fontWeight: 600 }}>{fmtSigned(Math.round(row.netCashflow))}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

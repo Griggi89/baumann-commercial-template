@@ -67,6 +67,7 @@ function onOpen() {
     .addItem('Run AI Research (on CF sheet)', 'runAIResearchFromMenu')
     .addSeparator()
     .addItem('List Active Deals', 'listActiveDeals')
+    .addItem('Generate Tokens (fill empty Token cells)', 'generateMissingTokens')
     .addItem('Ensure Master Index Headers', 'ensureMasterIndexHeaders')
     .addToUi();
 }
@@ -146,7 +147,10 @@ function createCommercialDeal(address) {
     Logger.log('Could not seed Settings tab: ' + e.message);
   }
 
-  // 5. Write row to Master Index
+  // 5. Generate a per-deal access token (URL-safe) and write the Master
+  //    Index row. The token is appended to the dashboard URL as `?t=<token>`
+  //    so links can be shared externally without exposing unassigned deals.
+  const token = generateDealToken_();
   writeMasterIndexRow_({
     slug:       slug,
     sheetId:    cfSheetId,
@@ -154,6 +158,7 @@ function createCommercialDeal(address) {
     folderUrl:  propFolder.getUrl(),
     cfSheetUrl: cfSheetUrl,
     active:     true,
+    token:      token,
   });
 
   return {
@@ -161,8 +166,54 @@ function createCommercialDeal(address) {
     folderUrl:  propFolder.getUrl(),
     cfSheetUrl: cfSheetUrl,
     sheetId:    cfSheetId,
-    dashboardUrl: BPI_COMMERCIAL.DASHBOARD_BASE_URL + '/' + slug,
+    token:      token,
+    dashboardUrl: BPI_COMMERCIAL.DASHBOARD_BASE_URL + '/' + slug + '?t=' + token,
   };
+}
+
+/**
+ * 8-char URL-safe random token. Enough entropy to not be guessable by
+ * humans; not a crypto-grade secret (Google Drive link sharing is the real
+ * gate). 62^8 ≈ 2.2e14 which is fine for a single-operator business.
+ */
+function generateDealToken_() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let out = '';
+  for (let i = 0; i < 8; i++) {
+    out += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return out;
+}
+
+/**
+ * Menu-callable: walk the Master Index and fill any empty Token cells
+ * (column G) with a fresh random token. Never overwrites an existing token.
+ * Run once after this change lands to back-fill pre-token deals.
+ */
+function generateMissingTokens() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheets()[0];
+  const last = sheet.getLastRow();
+  if (last < 2) {
+    SpreadsheetApp.getUi().alert('No deals in Master Index yet.');
+    return;
+  }
+  const tokenCol = BPI_COMMERCIAL.MASTER_COLS.token;
+  const range = sheet.getRange(2, tokenCol, last - 1, 1);
+  const values = range.getValues();
+  let filled = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (!values[i][0] || String(values[i][0]).trim() === '') {
+      values[i][0] = generateDealToken_();
+      filled++;
+    }
+  }
+  if (filled > 0) range.setValues(values);
+  SpreadsheetApp.getUi().alert(
+    filled === 0
+      ? 'All deals already have tokens — nothing to do.'
+      : 'Filled ' + filled + ' empty token cell' + (filled === 1 ? '' : 's') + '.'
+  );
 }
 
 
@@ -244,6 +295,7 @@ function writeMasterIndexRow_(row) {
   sheet.getRange(nextRow, cols.folderUrl).setValue(row.folderUrl);
   sheet.getRange(nextRow, cols.cfSheetUrl).setValue(row.cfSheetUrl);
   sheet.getRange(nextRow, cols.active).setValue(row.active === false ? false : true);
+  if (row.token) sheet.getRange(nextRow, cols.token).setValue(row.token);
   sheet.getRange(nextRow, cols.createdAt).setValue(new Date());
 }
 

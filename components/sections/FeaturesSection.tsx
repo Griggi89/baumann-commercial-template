@@ -36,10 +36,11 @@ function hostnameOf(url: string): string {
   }
 }
 
-// All listing-portal buttons use the realcommercial.com.au brand blue.
-// Chris's call 2026-04-19 — one consistent colour reads better in the
-// hero than per-broker branding, which was creating visual noise.
-const LISTING_BUTTON_BG = '#0073E6';
+// All listing-portal buttons use the Baumann Property brand navy, same
+// hue the topbar / sidebar / Total Cash Required card use. Keeps the
+// hero congruent with the rest of the dashboard instead of borrowing a
+// third-party's CTA colour.
+const LISTING_BUTTON_BG = '#2B3C50';
 const LISTING_BUTTON_FG = '#FFFFFF';
 
 export default function FeaturesSection() {

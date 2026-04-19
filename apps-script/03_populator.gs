@@ -633,10 +633,25 @@ function callClaudeCommercialResearch_(apiKey, ctx) {
     'recent data you are confident about). Each with: name, lga_percentage (percentage of employed ' +
     'persons in that LGA working in this industry), benchmark_percentage (same industry percentage ' +
     'for the benchmark region above). Numbers only, no % sign.\n' +
-    '3. infrastructure_projects — 5 current or recently-announced government / infrastructure ' +
-    'projects affecting the region (federal, state, or LGA). Each with: title, 1-sentence ' +
-    'description, key_points (array of 2-4 short bullets e.g. funding, dates, impact), and a ' +
-    'source_url (an authoritative source — gov.au, newspaper, project page).\n\n' +
+    '3. infrastructure_projects — the TOP 4-5 major government / infrastructure / private ' +
+    'investment projects affecting the region, RANKED BY TOTAL DOLLAR VALUE (largest first). ' +
+    'Selection criteria (apply in order):\n' +
+    '   (a) Forward-looking: under construction, funded, or recently announced. Prefer ongoing ' +
+    '       over already-completed. Exclude projects completed more than 3 years ago unless ' +
+    '       they are still the biggest drivers in the region and nothing bigger exists.\n' +
+    '   (b) Material scale: generally > A$200 million total program value. If the region has ' +
+    '       fewer than 4 projects of that scale, fill with the next largest — but never include ' +
+    '       projects under A$50M unless the region has almost no major infrastructure.\n' +
+    '   (c) Relevance to commercial real estate demand (industrial, logistics, defence, ' +
+    '       energy, health, transport corridors, port/airport capacity). Cultural, sporting, ' +
+    '       or tourism venues only count if the investment is ≥ A$500M and under construction.\n' +
+    '   (d) Exclude "umbrella" agreements (e.g. City Deals) — pick the specific funded projects ' +
+    '       inside them instead.\n' +
+    '   Each project: title, 1-sentence description (mention the scale and what it enables), ' +
+    '   key_points (array of 3-5 short bullets — MUST include the dollar value as the first ' +
+    '   bullet, then funding source, timeline, and relevance to commercial property in the ' +
+    '   region), and a source_url (authoritative — gov.au, project page, or major newspaper). ' +
+    '   Only include URLs you are confident exist.\n\n' +
     'Be conservative: if you cannot verify a fact with reasonable confidence, use a placeholder ' +
     '("TBD") rather than hallucinate. Especially source_url — only include URLs you are confident exist.';
 

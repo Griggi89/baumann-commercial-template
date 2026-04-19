@@ -208,11 +208,29 @@ function cfValue(rows: string[][], ...needles: string[]): string {
 /**
  * 10-yr projection: years 1-10 in cols C..L (indices 2..11). Trailing cols
  * may hold summary / average values; we only return the first 10.
+ *
+ * Disambiguation: labels like "rent" and "net cash flow" appear on BOTH
+ * input rows (single value in col C) and projection rows (10 values in
+ * cols C..L). findCFRow returns the first match, which for projection
+ * lookups bites us (e.g. row 11 "Year 1 Net Rental Income" beats row 19
+ * "Rent"). So here we require the matched row to carry ≥ 3 filled year
+ * cells — true for projection rows, false for input rows.
  */
 function cfYearlyValues(rows: string[][], ...needles: string[]): string[] {
-  const row = findCFRow(rows, ...needles);
-  if (!row) return [];
-  return row.slice(2, 12).map((c) => (c ?? '').toString());
+  const normed = needles.map(normalizeLabel).filter(Boolean);
+  if (normed.length === 0) return [];
+  for (const r of rows) {
+    const labelA = normalizeLabel(r[0]);
+    const labelB = normalizeLabel(r[1]);
+    const label = labelA || labelB;
+    if (!label) continue;
+    if (!normed.some((n) => label.includes(n))) continue;
+    const years = r.slice(2, 12).map((c) => (c ?? '').toString());
+    const filled = years.filter((c) => c.trim() !== '').length;
+    if (filled < 3) continue;
+    return years;
+  }
+  return [];
 }
 
 /**

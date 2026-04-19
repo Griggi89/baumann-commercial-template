@@ -221,11 +221,27 @@ function mirrorCFCalcToSettings_(ss) {
   }
 
   // Commercial-only placeholders — create empty Settings rows so Chris has
-  // a field to type into. Never overwrite a non-empty cell.
+  // a field to type into for every dashboard section that relies on a
+  // Settings-tab field. Never overwrite a non-empty cell.
+  //
+  // Three groups:
+  //   A. Property details — feeds the "Property Details" cards under the hero
+  //   B. Lease & tenant    — feeds Executive Summary + Lease & Tenant Insights
+  //   C. Suburb profile    — feeds the Suburb Profile section summary rows
   const COMMERCIAL_PLACEHOLDERS = [
+    // A. Property details (featureLabels in lib/fetchSheetData.ts)
+    'Property Type', 'Building Area (sqm)', 'Floor Area (sqm)', 'Land Area (sqm)',
+    'Year Built', 'Zoning', 'Parking Spaces', 'Car Spaces',
+    'NABERS Rating', 'Floor Count', 'Tenancy Count',
+    'Hero Image URL', 'Property URL', 'Listing Link',
+    // B. Lease & tenant
     'Tenant', 'Tenant Covenant', 'Lease Type', 'Lease Start', 'Lease Expiry',
     'WALE (yrs)', 'Rent Review', 'Option Terms', 'Outgoings Recovery',
-    'NABERS Rating', 'GST', 'Parking Spaces',
+    'GST',
+    'Vacancy rate (%)', 'Vacancy Source',
+    // C. Suburb profile (suburbLabels in lib/fetchSheetData.ts)
+    'Commercial Vacancy Rate', 'Median Commercial Yield',
+    'Rent Growth (YoY)', 'Supply Pipeline', 'Absorption Rate',
   ];
   for (const label of COMMERCIAL_PLACEHOLDERS) {
     if (!(label in settingsMap)) setSettingsValue_(settings, label, '');

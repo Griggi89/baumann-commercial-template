@@ -107,11 +107,32 @@ function toMoney(s: string | number | undefined | null): number {
   return Math.round(toNum(s));
 }
 
+/**
+ * Strip template placeholder strings ("Filled by AI", "TBD", etc.) so they
+ * don't leak through to the rendered dashboard. Returns '' for placeholders,
+ * the original (trimmed) string otherwise.
+ *
+ * These placeholders exist in the CF template's Settings tab as defaults
+ * that the AI research pipeline is supposed to overwrite. If the pipeline
+ * hasn't run for a given deal, the dashboard previously rendered the raw
+ * placeholder text — surfacing internal workflow state to clients.
+ */
+function stripPlaceholder(s: string | undefined | null): string {
+  const v = (s ?? '').trim();
+  if (!v) return '';
+  if (/^filled\s+by\s+ai$/i.test(v)) return '';
+  if (/^tbd$/i.test(v) || /^to\s+be\s+determined$/i.test(v)) return '';
+  if (/^n\/?a$/i.test(v)) return '';
+  return v;
+}
+
 function toSettingsMap(rows: string[][]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const row of rows) {
     const [key, val] = [row[0] ?? '', row[1] ?? ''];
-    if (key && !key.startsWith('──')) map[key.trim()] = (val ?? '').trim();
+    if (key && !key.startsWith('──')) {
+      map[key.trim()] = stripPlaceholder(val);
+    }
   }
   return map;
 }

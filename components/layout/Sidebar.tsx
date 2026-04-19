@@ -21,7 +21,7 @@ const NAV_ITEMS: { id: string; label: string; badge?: string }[] = [
   { id: 'due-diligence',   label: 'Due Diligence' },
   { id: 'location',        label: 'Proximity' },
   { id: 'suburb',          label: 'Suburb Profile' },
-  { id: 'government',      label: 'Govt Projects' },
+  { id: 'government',      label: 'Infrastructure Projects' },
   { id: 'industries',      label: 'Local Industries' },
   { id: 'drive-repo',      label: 'Drive Repo' },
   { id: 'ask-claude',      label: 'Ask ChristAIn', badge: 'NEW' },

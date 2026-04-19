@@ -12,7 +12,7 @@ export default function GovernmentSection() {
   return (
     <section id="government" style={{ marginBottom: '64px' }}>
       <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1a2b3c', margin: '0 0 24px 0' }}>
-        Major Government Projects &amp; Spending
+        Infrastructure Projects
       </h2>
 
       {government.projects.length > 0 ? (

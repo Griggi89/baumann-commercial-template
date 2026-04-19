@@ -117,11 +117,11 @@ export default function ExecutiveSummarySection() {
   const year1Interest = (cashflow.purchasePrice ?? 0) * (cashflow.lvr ?? 0) * (cashflow.interestRate ?? 0);
   const year1NetCashflow = (cashflow.annualRent ?? 0) - (cashflow.annualExpenses ?? 0) - year1Interest;
 
-  // Year 5 net cashflow — sourced from Equity Projection tab (CF Calc truth).
-  // Falls back to null if the 10-yr projection is absent (rare — populator
-  // always builds 10 rows). When null, the headline card falls back to Y1.
-  const year5Row = cashflow.equityProjection?.find((r) => r.year === 5);
-  const year5NetCashflow = year5Row ? year5Row.netCashflow : null;
+  // Year 2 net cashflow — sourced from the CF Calc 10-yr projection.
+  // Falls back to null if the 10-yr projection is absent; card then falls
+  // back to Year 1 (first-year stabilised).
+  const year2Row = cashflow.equityProjection?.find((r) => r.year === 2);
+  const year2NetCashflow = year2Row ? year2Row.netCashflow : null;
 
   const tenant = findItem(tenantLease.items, 'Tenant');
   const covenant = findItem(tenantLease.items, 'Tenant Covenant');
@@ -171,18 +171,18 @@ export default function ExecutiveSummarySection() {
                 : undefined}
             />
             <HeadlineCard
-              label={year5NetCashflow !== null ? 'Year 5 Net Cashflow' : 'Year 1 Net Cashflow'}
+              label={year2NetCashflow !== null ? 'Year 2 Net Cashflow (estimate)' : 'Year 1 Net Cashflow (estimate)'}
               value={cashflow.purchasePrice
                 ? (() => {
-                    const v = year5NetCashflow !== null ? year5NetCashflow : year1NetCashflow;
+                    const v = year2NetCashflow !== null ? year2NetCashflow : year1NetCashflow;
                     return (v < 0 ? '−' : '') + fmtMoney(Math.abs(v));
                   })()
                 : '—'}
               sub={cashflow.interestRate
-                ? `After ${(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% interest (IO)${year5NetCashflow !== null ? ' · from CF 10-yr projection' : ''}`
+                ? `After ${(cashflow.interestRate * 100).toFixed(2).replace(/\.?0+$/, '')}% interest (IO)${year2NetCashflow !== null ? ' · from CF 10-yr projection' : ''}`
                 : undefined}
               valueColor={cashflow.purchasePrice
-                ? ((year5NetCashflow !== null ? year5NetCashflow : year1NetCashflow) < 0 ? '#EF4444' : '#22C55E')
+                ? ((year2NetCashflow !== null ? year2NetCashflow : year1NetCashflow) < 0 ? '#EF4444' : '#22C55E')
                 : undefined}
             />
             <HeadlineCard

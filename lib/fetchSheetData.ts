@@ -99,6 +99,14 @@ function toNum(s: string | number | undefined | null): number {
   return isFinite(n) ? n : 0;
 }
 
+// Money values often arrive from CF Calc formulas with trailing floating-
+// point dust (e.g. 2166666.667 instead of 2166667). Round to whole dollars
+// at the fetch layer so every section renders a clean integer without
+// needing to think about Math.round in each component.
+function toMoney(s: string | number | undefined | null): number {
+  return Math.round(toNum(s));
+}
+
 function toSettingsMap(rows: string[][]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const row of rows) {
@@ -111,18 +119,19 @@ function toSettingsMap(rows: string[][]): Record<string, string> {
 /**
  * Parse the combined 'Rental ans Sales comps (sqm rates)' tab into two halves.
  *
- * Layout (per Chris's consolidated template):
- *   [Sales Comparables header marker]
- *   Column headers (Address, Sale Price, $/sqm, Cap Rate, Date, ...)
- *   Data rows
- *   Average per sqm row (highlighted yellow in-sheet)
- *   [Rent Comparables header marker]
- *   Column headers (Address, Lease Date, $ Lease per year, Sqm, $/sqm, ...)
- *   Data rows
- *   Average per sqm row
+ * Real-world layout (36 Allen CF, after merged-col-A collapse):
+ *   Row:  ["Sales Comparable", "Address", "Sold Date", "Sold Price", "Sqm", "$/sqm"]
+ *   Row:  ["",  "4 Kalina Court ...",  "08 Aug 2025", "615000", "3604", "170.64"]
+ *   ...
+ *   Row:  ["", "", "", "", "", "245.40"]                    ← average (value-only)
+ *   Row:  ["Rent Comparable", "Address"]                    ← rent marker (partial headers)
+ *   Row:  ["", "11 Kunara Cres ...", "", "36000", "929", "38.75"]
+ *   ...
  *
- * Section boundary detection: col A text transitioning between 'sales' and
- * 'rent' prefixes. 'Average ...' rows get routed to the section's summary.
+ * Tolerances:
+ *   - Marker row may inline the column headers (merged col A + headers in B+).
+ *   - "Average per sqm" row may have no label at all — just a trailing number.
+ *   - Rent section may not include a full header row; fall back to defaults.
  */
 function parseCombinedRentSales(rows: string[][]): {
   sales:  { headers: string[]; rows: string[][]; summary: { label: string; value: string }[] };
@@ -131,46 +140,107 @@ function parseCombinedRentSales(rows: string[][]): {
   const sales  = { headers: [] as string[], rows: [] as string[][], summary: [] as { label: string; value: string }[] };
   const rental = { headers: [] as string[], rows: [] as string[][], summary: [] as { label: string; value: string }[] };
 
+  const DEFAULT_SALES_HEADERS  = ['Address', 'Sold Date',  'Sold Price',  'Sqm',  '$ per sqm'];
+  const DEFAULT_RENTAL_HEADERS = ['Address', 'Lease Date', '$ Lease / yr', 'Sqm', '$ per sqm'];
+
+  // Trim leading & trailing empty cells (merged col A on 36 Allen produces
+  // stray empty leading cells in data rows).
+  function trim(r: string[]): string[] {
+    let start = 0, end = r.length;
+    while (start < end && (!r[start] || r[start].trim() === '')) start++;
+    while (end > start && (!r[end - 1] || r[end - 1].trim() === '')) end--;
+    return r.slice(start, end);
+  }
+  const isNumericLike = (s: string) =>
+    s !== '' && !isNaN(Number(String(s).replace(/[$,%\s]/g, '').replace(/[()]/g, '')));
+
   let section: 'sales' | 'rental' | null = null;
   let gotHeaders = false;
 
   for (const r of rows) {
-    const a = (r[0] ?? '').toLowerCase().trim();
+    const joined = r.map((c) => (c ?? '')).join(' | ').toLowerCase();
+    const isSalesMarker = /\bsales\s*comparable/.test(joined);
+    const isRentMarker  = /\brent\s*comparable/.test(joined);
 
-    // Section switches (check BEFORE other classifications so a marker row
-    // doesn't get captured as headers/data).
-    if (a.includes('sales') && a.includes('comparable')) {
-      section = 'sales'; gotHeaders = false; continue;
-    }
-    if (a.includes('rent')  && a.includes('comparable')) {
-      section = 'rental'; gotHeaders = false; continue;
-    }
-    if (!section) continue;
+    if (isSalesMarker || isRentMarker) {
+      section = isSalesMarker ? 'sales' : 'rental';
+      gotHeaders = false;
 
-    const target = section === 'sales' ? sales : rental;
-
-    // Average summary row — label/value pair, route to summary, not the grid.
-    if (a.startsWith('average')) {
-      // Pick the last non-empty numeric-looking cell as the value.
-      const val = [...r].reverse().find((c) => c && c.trim() !== '') ?? '';
-      target.summary.push({ label: r[0], value: val });
+      // Inline headers on the marker row? Capture everything except the
+      // marker text itself. Only keep if we have ≥ 2 usable labels.
+      const rest = r
+        .map((c) => (c ?? '').trim())
+        .filter((c) => c && !/\b(sales|rent)\s*comparable/i.test(c));
+      if (rest.length >= 2) {
+        (section === 'sales' ? sales : rental).headers = rest;
+        gotHeaders = true;
+      }
       continue;
     }
 
-    // First non-empty row after a section marker = headers.
+    if (!section) continue;
+    const target = section === 'sales' ? sales : rental;
+
+    // Average summary row — label may be anywhere, or absent entirely.
+    const avgCell = r.find((c) => /average/i.test(c ?? ''));
+    if (avgCell) {
+      const val = [...r]
+        .reverse()
+        .find((c) => c && c.trim() !== '' && !/average/i.test(c)) ?? '';
+      target.summary.push({ label: avgCell.trim(), value: val });
+      continue;
+    }
+
+    // Value-only summary row: a single numeric cell (36 Allen case — the
+    // "Average per sqm" text didn't survive the gviz roundtrip, only the
+    // number did).
+    const trimmed = trim(r);
+    if (trimmed.length === 1 && isNumericLike(trimmed[0])) {
+      target.summary.push({ label: 'Average per sqm', value: trimmed[0] });
+      continue;
+    }
+
+    // First non-empty row after a section marker = headers (fallback when
+    // the marker row didn't include them inline).
     if (!gotHeaders) {
+      // Guard: if the first non-marker row already looks like data (money,
+      // dates, addresses with commas), use default headers instead of
+      // stealing the data row.
+      const looksLikeData = trimmed.length >= 3 && trimmed.some((c) => isNumericLike(c));
+      if (looksLikeData) {
+        target.headers = section === 'sales' ? DEFAULT_SALES_HEADERS : DEFAULT_RENTAL_HEADERS;
+        gotHeaders = true;
+        if (trimmed.length > 0) target.rows.push(trimmed);
+        continue;
+      }
       target.headers = r.filter((c) => c && c.trim() !== '');
       gotHeaders = true;
       continue;
     }
 
-    // Data row — include if it has any content besides col A.
-    if (r.slice(1).some((c) => c && c.trim() !== '')) {
-      target.rows.push(r);
+    // Data row. Trim leading/trailing blanks so columns align with headers.
+    if (trimmed.length > 0) {
+      target.rows.push(trimmed);
     }
   }
 
+  // Final safety net — if a section has rows but no headers (shouldn't
+  // happen after the above but deal sheets are chaotic), apply defaults.
+  if (sales.rows.length  > 0 && sales.headers.length  === 0) sales.headers  = DEFAULT_SALES_HEADERS;
+  if (rental.rows.length > 0 && rental.headers.length === 0) rental.headers = DEFAULT_RENTAL_HEADERS;
+
   return { sales, rental };
+}
+
+/**
+ * Does a fetched CSV actually look like the SQM Rate Assessment tab, or is
+ * it gviz's silent fallback to the default sheet (Cash FLow Calc) because
+ * the named tab doesn't exist?
+ */
+function looksLikeSqmData(rows: string[][]): boolean {
+  return rows.some((r) =>
+    r.some((c) => /sales\s*comparable|rent\s*comparable/i.test(c ?? ''))
+  );
 }
 
 export async function fetchSheetData(sheetId: string): Promise<PropertyData> {
@@ -204,7 +274,15 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     fetchTab(sheetId, SHEET_TABS.INFRASTRUCTURE),
     fetchTab(sheetId, SHEET_TABS.DISTANCES),
   ]);
-  const combinedRows = sqmNewRows.length > 0 ? sqmNewRows : sqmLegacyRows;
+  // gviz silently returns the default sheet when a named tab doesn't exist.
+  // Validate the fetched rows actually contain SQM markers before trusting
+  // them; otherwise fall through to the legacy tab name (and if neither
+  // looks right, treat as empty).
+  const combinedRows = looksLikeSqmData(sqmNewRows)
+    ? sqmNewRows
+    : looksLikeSqmData(sqmLegacyRows)
+      ? sqmLegacyRows
+      : [];
 
   // Prefer the consolidated tab when present; split it into the two halves
   // the UI already expects. If it's missing (older deal sheets) we fall

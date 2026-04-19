@@ -14,12 +14,15 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Legacy /properties paths redirect to /deals. Root / renders the
-  // landing page defined in app/page.tsx — no redirect.
+  // Deal URLs live at the root: /<slug>?t=<token>
+  // Legacy /properties and /deals paths permanently redirect to root-level.
+  // Root / renders the landing page defined in app/page.tsx.
   async redirects() {
     return [
-      { source: '/properties', destination: '/deals', permanent: true },
-      { source: '/properties/:slug', destination: '/deals/:slug', permanent: true },
+      { source: '/properties',       destination: '/',       permanent: true },
+      { source: '/properties/:slug', destination: '/:slug',  permanent: true },
+      { source: '/deals',            destination: '/',       permanent: true },
+      { source: '/deals/:slug',      destination: '/:slug',  permanent: true },
     ];
   },
 };

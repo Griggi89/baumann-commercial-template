@@ -515,19 +515,24 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     ));
     const projection = [];
     for (let i = 0; i < yearCount; i++) {
-      const rental   = toMoney(rentYr[i]);
-      const cashflow = toMoney(netCashflowYr[i]);
+      const rental    = toMoney(rentYr[i]);
+      const cashflow  = toMoney(netCashflowYr[i]);
+      const interest  = toMoney(interestYr[i]);
+      const outgoings = toMoney(nonRecYr[i]);
       projection.push({
         year:               i + 1,
         rentalIncome:       rental,
-        totalExpenses:      toMoney(nonRecYr[i]),
+        // totalExpenses matches the chart header "Total expenses incl. interest":
+        // interest + non-recoverable outgoings. Stored separately as
+        // interestPaid for the amortization table.
+        totalExpenses:      interest + outgoings,
         annualCashflow:     cashflow,
         rentPerWeek:        rental ? Math.round(rental / 52) : 0,
         propertyValue:      toMoney(propValueYr[i]),
         netEquity:          toMoney(netEquityYr[i]),
         netCashflow:        cashflow,
         yearlyYield:        toPct(yieldYr[i]),
-        interestPaid:       toMoney(interestYr[i]),
+        interestPaid:       interest,
         principalPaid:      toMoney(principalPaidYr[i]),
         principalRemaining: toMoney(principalRemYr[i]),
         cashOnCash:         toPct(cashOnCashYr[i]),

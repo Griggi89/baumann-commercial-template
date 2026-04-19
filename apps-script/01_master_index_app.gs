@@ -40,11 +40,13 @@ const BPI_COMMERCIAL = {
     createdAt:  8,  // H
   },
 
-  // 9 commercial DD subfolders — created under each new property folder
+  // Commercial DD subfolders — created under each new property folder.
+  // 'Rental Appraisal and Sales Comparables' removed 2026-04-19: that
+  // data now lives on the CF sheet's 'SQM Rate Assessment' tab, so the
+  // separate Drive subfolder was redundant clutter.
   DD_SUBFOLDERS: [
     'Tenant Insights',
     'Lease Documents',
-    'Rental Appraisal and Sales Comparables',
     'Suburb and Property Report',
     'Walkthrough videos',
     'Contract and Vendor Disclosure',

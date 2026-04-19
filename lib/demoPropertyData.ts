@@ -252,7 +252,6 @@ export const demoPropertyData: PropertyData = {
     checks: [
       { label: 'Tenant Insights',                 status: 'Complete', folder: 'Tenant Insights',                 folderUrl: '#', imageId: '', fileName: 'Tenant_Overview_SCHWG.pdf',         type: 'pdf'   },
       { label: 'Lease Documents',                 status: 'Complete', folder: 'Lease Documents',                 folderUrl: '#', imageId: '', fileName: 'Head_Lease_Executed_2024.pdf',      type: 'pdf'   },
-      { label: 'Rental Appraisal & Sales Comps',  status: 'Complete', folder: 'Rental Appraisal & Sales Comps',  folderUrl: '#', imageId: '', fileName: 'Ray_White_Rental_2026.pdf',         type: 'pdf'   },
       { label: 'Suburb and Property Report',      status: 'Complete', folder: 'Suburb and Property Report',      folderUrl: '#', imageId: '', fileName: 'SC_Office_Report_Q4_25.pdf',        type: 'pdf'   },
       { label: 'Walkthrough videos',              status: 'Pending',  folder: 'Walkthrough videos',              folderUrl: '#', imageId: '', fileName: '',                                  type: 'video' },
       { label: 'Contract and Vendor Disclosure',  status: 'Complete', folder: 'Contract and Vendor Disclosure',  folderUrl: '#', imageId: '', fileName: 'Contract_of_Sale_Executed.pdf',     type: 'pdf'   },
@@ -273,7 +272,6 @@ export const demoPropertyData: PropertyData = {
     subfolders: [
       'Tenant Insights',
       'Lease Documents',
-      'Rental Appraisal & Sales Comparables',
       'Suburb and Property Report',
       'Walkthrough videos',
       'Contract and Vendor Disclosure',
@@ -288,7 +286,6 @@ export const demoPropertyData: PropertyData = {
     subfolders: [
       { name: 'Tenant Insights',                url: '#' },
       { name: 'Lease Documents',                url: '#' },
-      { name: 'Rental Appraisal & Sales Comps', url: '#' },
       { name: 'Suburb and Property Report',     url: '#' },
       { name: 'Walkthrough videos',             url: '#' },
       { name: 'Contract and Vendor Disclosure', url: '#' },

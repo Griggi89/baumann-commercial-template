@@ -1,21 +1,23 @@
 /**
  * BPI COMMERCIAL — DUE DILIGENCE FOLDER SYNC
  * ==========================================
- * Scans the 9 commercial DD subfolders in Drive and populates the
+ * Scans the 8 commercial DD subfolders in Drive and populates the
  * "Due Diligence" tab of the given deal's CF sheet.
  *
  * Called by runPipeline() in 01_master_index_app.gs.
  *
- * Commercial subfolder list (matches MASTER_INDEX_APP.DD_SUBFOLDERS):
+ * Commercial subfolder list (matches BPI_COMMERCIAL.DD_SUBFOLDERS):
  *   Tenant Insights
  *   Lease Documents
- *   Rental Appraisal and Sales Comparables
  *   Suburb and Property Report
  *   Walkthrough videos
  *   Contract and Vendor Disclosure
  *   Due Diligence Checks (Easement, Public Housing, Insurance)
  *   Council Planning information
  *   Cashflow Calculation
+ *
+ * Note: 'Rental Appraisal and Sales Comparables' was removed 2026-04-19.
+ * That data now lives on the CF sheet's 'SQM Rate Assessment' tab.
  *
  * Rules:
  *   - Only writes to empty cells (never overwrites existing data)

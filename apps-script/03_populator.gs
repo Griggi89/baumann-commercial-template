@@ -81,11 +81,23 @@ function findCFRowByLabel_(cfSheet, labelSubstring) {
   if (last < 1) return null;
   const colB = cfSheet.getRange(1, 2, last, 1).getValues();
   const needle = String(labelSubstring).toLowerCase().trim();
+
+  // Prefer the MOST SPECIFIC match so generic labels like "Rent" don't hit
+  // "Year 1 Net Rental Income" first, and "Net Cash flow" doesn't hit
+  // "% of net cash flow used for debt reduction" first.
+  // Order: exact > startsWith > includes. Returns the 1st match in the
+  // best tier found.
+  let exactRow = null;
+  let startsRow = null;
+  let includesRow = null;
   for (let i = 0; i < colB.length; i++) {
     const cell = String(colB[i][0] || '').toLowerCase().trim();
-    if (cell && cell.indexOf(needle) !== -1) return i + 1;
+    if (!cell) continue;
+    if (cell === needle && exactRow === null) exactRow = i + 1;
+    else if (cell.indexOf(needle) === 0 && startsRow === null) startsRow = i + 1;
+    else if (cell.indexOf(needle) !== -1 && includesRow === null) includesRow = i + 1;
   }
-  return null;
+  return exactRow || startsRow || includesRow;
 }
 
 

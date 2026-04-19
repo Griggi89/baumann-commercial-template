@@ -114,7 +114,7 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
     settingsRows, cashflowRows, rentalRows, salesRows,
     ddRows, industriesRows, infraRows, distancesRows,
   ] = await Promise.all([
-    fetchTabByGid(sheetId, '0'),                  // Settings (first tab)
+    fetchTab(sheetId, SHEET_TABS.SETTINGS),       // Settings tab by name (CF template has Cash FLow Calc at gid=0, not Settings)
     fetchTab(sheetId, SHEET_TABS.CASHFLOW),
     fetchTab(sheetId, SHEET_TABS.RENTAL),
     fetchTab(sheetId, SHEET_TABS.SALES),

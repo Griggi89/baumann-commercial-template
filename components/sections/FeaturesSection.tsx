@@ -26,6 +26,38 @@ function hiResImage(url: string): string {
   return url.replace(/\/\d+x\d+-crop/, '/1600x900-crop');
 }
 
+/** Extract the bare hostname (without www.) from a URL. Safe on bad input. */
+function hostnameOf(url: string): string {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Brand background colour for the Alternative Listing button, derived from
+ * the hostname. Falls back to a neutral slate for unknown brokers so the
+ * button is always readable without having to curate every domain.
+ */
+function altListingBg(url: string): string {
+  const host = hostnameOf(url).toLowerCase();
+  if (host.includes('colliers'))                return '#C8102E';  // Colliers red
+  if (host.includes('cbre'))                    return '#17331A';  // CBRE dark green
+  if (host.includes('jll'))                     return '#E31837';  // JLL red
+  if (host.includes('cushman'))                 return '#005172';  // Cushman & Wakefield navy
+  if (host.includes('knightfrank'))             return '#161D27';  // Knight Frank navy/charcoal
+  if (host.includes('raywhite'))                return '#FFE500';  // Ray White yellow
+  if (host.includes('commercialrealestate'))    return '#005151';  // Domain commercialrealestate teal
+  return '#334155';                                                // neutral slate fallback
+}
+
+/** Text colour that reads against altListingBg (mostly white, except Ray White yellow). */
+function altListingFg(url: string): string {
+  return hostnameOf(url).toLowerCase().includes('raywhite') ? '#000' : '#fff';
+}
+
 export default function FeaturesSection() {
   const propertyData = usePropertyData();
   const { features, reaLink } = propertyData;
@@ -75,7 +107,7 @@ export default function FeaturesSection() {
           {/* Only render each button when the URL actually points at that
               platform — prevents misbranded links if the populator picks
               up the wrong URL from the CF sheet. */}
-          {features.propertyUrl?.includes('commercialrealestate.com.au') && (
+          {features.propertyUrl && features.propertyUrl !== reaLink && (
             <a
               href={features.propertyUrl}
               target="_blank"
@@ -84,8 +116,8 @@ export default function FeaturesSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#005151',   // commercialrealestate.com.au (Domain) brand teal
-                color: '#fff',
+                backgroundColor: altListingBg(features.propertyUrl),
+                color: altListingFg(features.propertyUrl),
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 padding: '10px 20px',
@@ -94,7 +126,7 @@ export default function FeaturesSection() {
                 flexShrink: 0,
               }}
             >
-              <span>commercialrealestate.com.au</span>
+              <span>{hostnameOf(features.propertyUrl) || 'Alternative listing'}</span>
               <span style={{ fontSize: '0.75rem' }}>&#8599;</span>
             </a>
           )}

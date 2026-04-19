@@ -428,7 +428,11 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
 
   // ── Features ──────────────────────────────────────────────────────────────
   data.features.heroImage   = s['Hero Image URL'] ?? '';
-  data.features.propertyUrl = s['Alternative Real Estate Link']
+  // Alternative listing link — can be any broker site (Colliers, CBRE, JLL,
+  // commercialrealestate.com.au, etc.). Template label is "Alternative
+  // Listing Link"; older aliases kept for back-compat.
+  data.features.propertyUrl = s['Alternative Listing Link']
+    ?? s['Alternative Real Estate Link']
     ?? s['commercial Real Estate Link']
     ?? s['Commercial Real Estate Link']
     ?? s['commercialrealestate Link']

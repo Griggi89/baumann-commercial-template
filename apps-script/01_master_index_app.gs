@@ -25,10 +25,8 @@ const BPI_COMMERCIAL = {
   CF_TEMPLATE_SHEET_ID: '1VlUOAJhNSFpMLauT3Sq2CG1ORpuBa2-8RJIoAOSy0aA',
 
   // Dashboard base URL (root-level slug pattern, matches residential).
-  // Once commercial.baumannproperty.com.au DNS lands in Vercel, switch to
-  // 'https://commercial.baumannproperty.com.au'. For now the Vercel URL
-  // serves the same content — legacy /deals/<slug> still works via redirect.
-  DASHBOARD_BASE_URL: 'https://baumann-commercial-template.vercel.app',
+  // Live custom domain as of 2026-04-19.
+  DASHBOARD_BASE_URL: 'https://commercial.baumannproperty.com.au',
 
   // Master Index sheet columns (1-based)
   MASTER_COLS: {

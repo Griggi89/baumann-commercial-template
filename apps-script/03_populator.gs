@@ -30,39 +30,44 @@ const POPULATOR = {
     // The labels below are matched case-sensitively against col B, trimmed.
     col: 3,
     labels: {
-      purchasePrice:      'Purchase price',
-      lvr:                'LVR',
-      totalLoan:          'Total Loan $',
-      deposit:            'Deposit $',
-      stampDuty:          'Stamp duty (if outside South Australia)',
-      valuation:          'Valuation cost',
-      solicitor:          'Solicitor cost',
-      buildingInspection: 'Building Inspection',
-      totalCashRequired:  'Total cash/equity required',
-      // mgmtFee label spans two lines in the template ("Property Management
-      // Fee + 2% for \naux cost like compliance/insurance etc") — we match
-      // by `includes` in the label lookup, not exact.
-      mgmtFee:            'Property Management Fee',
-      year1NetRent:       'Year 1 Net Rental Income',
-      netYieldCap:        'Net Yield / Cap Rate',
-      yearlyReview:       'Yearly review / CPI increase',
-      termOwnership:      'Term of ownership',
-      loanInterestRate:   'Loan interest rate',
-      netCashDebt:        '% of net cash flow used for debt reduction',
-      // 10-year horizontal rows — matched by `includes` to tolerate the
-      // trailing space on "Rent " and multi-line labels like
-      // "Net Cash flow (rent less interest - property mgmt/aux)".
-      rent:               'Rent',
-      yield:              'Yearly yield',
-      interestPaid:       'Interest paid',
-      netCashflow:        'Net Cash flow',
-      returnOnCash:       'Return on cash',
-      principalStart:     'Principal remaining',
-      principalPaid:      'Principal paid',
-      remainingDebt:      'Remaining Debt',
-      propertyValue:      'Property Value at beginning',
-      netEquity:          'Net Equity',
-      equityGainPct:      'Equity gain',
+      purchasePrice:           'Purchase price',
+      lvr:                     'LVR',
+      totalLoan:               'Total Loan $',
+      deposit:                 'Deposit $',
+      stampDuty:               'Stamp duty (if outside South Australia)',
+      valuation:               'Valuation cost',
+      solicitor:               'Solicitor cost',
+      buildingInspection:      'Building Inspection',
+      totalCashRequired:       'Total cash/equity required',
+      // Outgoings model as of 2026-04-19 template rev:
+      //   'Non recoverable Outgoings (Sum)' — $ flat, annual
+      //   'Growth Rate of non recoverables %' — separate from rent CPI
+      // Previously the template had 'Property Management Fee + 2% aux' as
+      // a percent; that's been removed in favour of an explicit $ figure.
+      nonRecoverableOutgoings: 'Non recoverable Outgoings',
+      outgoingsGrowthRate:     'Growth Rate of non recoverables',
+      year1NetRent:            'Year 1 Net Rental Income',
+      netYieldCap:             'Net Yield / Cap Rate',
+      yearlyReview:            'Yearly review / CPI increase',
+      termOwnership:           'Term of ownership',
+      loanInterestRate:        'Loan interest rate',
+      netCashDebt:             '% of net cash flow used for debt reduction',
+      // 10-year horizontal rows — matched by `includes` / tiered match
+      // (exact > startsWith > includes) to tolerate trailing space on
+      // "Rent " and multi-line labels like "Net Cash flow (rent less
+      // interest - property mgmt/aux)".
+      rent:                    'Rent',
+      yield:                   'Yearly yield',
+      interestPaid:            'Interest paid',
+      minusNonRecoverables:    'Minus Non Recoverable',
+      netCashflow:             'Net Cash flow',
+      returnOnCash:            'Return on cash',
+      principalStart:          'Principal remaining',
+      principalPaid:           'Principal paid',
+      remainingDebt:           'Remaining Debt',
+      propertyValue:           'Property Value at beginning',
+      netEquity:               'Net Equity',
+      equityGainPct:           'Equity gain',
     },
   },
 };
@@ -153,34 +158,33 @@ function mirrorCFCalcToSettings_(ss) {
     return cf.getRange(row, c).getValue();
   };
 
-  const purchasePrice = read('purchasePrice');
-  const lvr           = read('lvr');
-  const deposit       = read('deposit');
-  const stampDuty     = read('stampDuty');
-  const valuation     = read('valuation');
-  const solicitor     = read('solicitor');
-  const bnp           = read('buildingInspection');
-  const totalCash     = read('totalCashRequired');
-  const mgmtFee       = read('mgmtFee');
-  const year1Rent     = read('year1NetRent');
-  const netYield      = read('netYieldCap');
-  const review        = read('yearlyReview');
-  const interestRate  = read('loanInterestRate');
-  const debtReduction = read('netCashDebt');
+  const purchasePrice     = read('purchasePrice');
+  const lvr               = read('lvr');
+  const deposit           = read('deposit');
+  const stampDuty         = read('stampDuty');
+  const valuation         = read('valuation');
+  const solicitor         = read('solicitor');
+  const bnp               = read('buildingInspection');
+  const totalCash         = read('totalCashRequired');
+  const nonRecOutgoings   = read('nonRecoverableOutgoings');
+  const outgoingsGrowth   = read('outgoingsGrowthRate');
+  const year1Rent         = read('year1NetRent');
+  const netYield          = read('netYieldCap');
+  const review            = read('yearlyReview');
+  const interestRate      = read('loanInterestRate');
+  const debtReduction     = read('netCashDebt');
 
-  // Annual Outgoings (to landlord) — under a triple-net lease the tenant pays
-  // most outgoings, but Property Management Fee remains. Compute as a dollar
-  // figure: mgmt fee % × gross rent. If the CF Calc uses a different model
-  // (e.g. gross lease), Chris can override Annual Outgoings in Settings.
-  const mgmtFeePct = typeof mgmtFee === 'number' && mgmtFee > 0 && mgmtFee < 1
-    ? mgmtFee
-    : 0;
-  const annualOutgoings = (typeof year1Rent === 'number' && year1Rent > 0)
-    ? Math.round(year1Rent * mgmtFeePct)
+  // Annual Outgoings: now sourced DIRECTLY from 'Non recoverable Outgoings (Sum)'
+  // as a $ figure. (Previously computed from mgmt-fee % × rent. The template
+  // dropped the % model; this reads the operator's own dollar value, which
+  // accounts for insurance, land tax, and anything else not recoverable
+  // from the tenant.)
+  const annualOutgoings = (typeof nonRecOutgoings === 'number' && nonRecOutgoings > 0)
+    ? nonRecOutgoings
     : 0;
 
-  // Fields mirrored from CF Calc (only written when Settings cell is empty,
-  // so user overrides stay).
+  // Fields mirrored from CF Calc (setSettingsValue_ always overwrites the
+  // matched label row, so CF is the source of truth for these).
   const fields = [
     ['Purchase Price',          purchasePrice],
     ['LVR',                     lvr],
@@ -190,12 +194,12 @@ function mirrorCFCalcToSettings_(ss) {
     ['Solicitor Cost',          solicitor],
     ['Building and Pest',       bnp],
     ['Total Required',          totalCash],
-    ['Property Management Fee', mgmtFee],
     ['Net Annual Rent',         year1Rent],
     ['Net Yield / Cap Rate',    netYield],
     ['Rent Growth Rate',        review],
     ['Interest Rate',           interestRate],
     ['Annual Outgoings',        annualOutgoings],
+    ['Expense Growth Rate',     outgoingsGrowth],
     ['Debt Reduction Pct',      debtReduction],
   ];
 
@@ -203,6 +207,16 @@ function mirrorCFCalcToSettings_(ss) {
     if (value !== '' && value !== null && value !== undefined) {
       setSettingsValue_(settings, label, value);
     }
+  }
+
+  // Auto-write a single-line expense breakdown row so the Cashflow
+  // section's breakdown panel has something to render. Key uses the
+  // 'Outgoing: ' prefix that fetchSheetData picks up into
+  // `cashflow.expenseBreakdown`. Chris can replace with itemised rows
+  // (e.g. 'Outgoing: Council rates', 'Outgoing: Insurance') by hand —
+  // the populator won't overwrite those because the key differs.
+  if (annualOutgoings > 0) {
+    setSettingsValue_(settings, 'Outgoing: Non-recoverable outgoings', annualOutgoings);
   }
 
   // Defaults — written only when the Settings row is missing/empty.

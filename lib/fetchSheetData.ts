@@ -217,11 +217,27 @@ async function _fetchSheetDataUnsafe(sheetId: string): Promise<PropertyData> {
   // ── Header ────────────────────────────────────────────────────────────────
   data.address     = s['Address']      ?? '';
   data.lastUpdated = s['Last Updated'] ?? '';
-  data.reaLink     = s['Listing Link'] ?? s['REA Link'] ?? s['Property.com.au link'] ?? '';
+
+  // Listing-link keys — the Settings template has drifted to brand-specific
+  // labels ('Real Commercial Link', 'commercial Real Estate Link'). Accept
+  // the canonical names PLUS historical aliases so both new and old deal
+  // sheets render the right brand button.
+  //   - reaLink     → realcommercial.com.au (red brand)
+  //   - propertyUrl → commercialrealestate.com.au (teal brand, Domain)
+  data.reaLink = s['Real Commercial Link']
+    ?? s['realcommercial Link']
+    ?? s['Listing Link']
+    ?? s['REA Link']
+    ?? s['Property.com.au link']
+    ?? '';
 
   // ── Features ──────────────────────────────────────────────────────────────
   data.features.heroImage   = s['Hero Image URL'] ?? '';
-  data.features.propertyUrl = s['Property URL']   ?? '';
+  data.features.propertyUrl = s['commercial Real Estate Link']
+    ?? s['Commercial Real Estate Link']
+    ?? s['commercialrealestate Link']
+    ?? s['Property URL']
+    ?? '';
   const featureLabels = [
     'Property Type', 'Building Area (sqm)', 'Floor Area (sqm)', 'Land Area (sqm)',
     'Year Built', 'Zoning', 'Parking Spaces', 'Car Spaces',

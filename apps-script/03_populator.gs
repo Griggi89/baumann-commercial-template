@@ -233,7 +233,11 @@ function mirrorCFCalcToSettings_(ss) {
     'Property Type', 'Building Area (sqm)', 'Floor Area (sqm)', 'Land Area (sqm)',
     'Year Built', 'Zoning', 'Parking Spaces', 'Car Spaces',
     'NABERS Rating', 'Floor Count', 'Tenancy Count',
-    'Hero Image URL', 'Property URL', 'Listing Link',
+    // Listing-link keys — canonical brand-specific labels per template
+    // (fetchSheetData accepts these + historical aliases).
+    'Hero Image URL',
+    'Real Commercial Link',           // realcommercial.com.au
+    'commercial Real Estate Link',    // commercialrealestate.com.au (Domain)
     // B. Lease & tenant
     'Tenant', 'Tenant Covenant', 'Lease Type', 'Lease Start', 'Lease Expiry',
     'WALE (yrs)', 'Rent Review', 'Option Terms', 'Outgoings Recovery',

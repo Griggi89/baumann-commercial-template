@@ -108,14 +108,20 @@ function createCommercialDeal(address) {
   const parent = DriveApp.getFolderById(BPI_COMMERCIAL.COMMERCIAL_DD_PARENT_FOLDER_ID);
   const propFolder = parent.createFolder(address);
 
-  // 2. Create 9 subfolders inside
+  // 2. Create 9 subfolders inside; capture references so we can drop the
+  //    CF sheet into the right one below.
+  const subFolders = {};
   for (const subName of BPI_COMMERCIAL.DD_SUBFOLDERS) {
-    propFolder.createFolder(subName);
+    subFolders[subName] = propFolder.createFolder(subName);
   }
 
-  // 3. Copy the CF template into the property folder
+  // 3. Copy the CF template INTO the 'Cashflow Calculation' subfolder so
+  //    that DD slot is immediately green on the dashboard + the CF file
+  //    lives where operators expect it. Fall back to the property root
+  //    if the subfolder name ever drifts (defensive).
   const cfTemplate = DriveApp.getFileById(BPI_COMMERCIAL.CF_TEMPLATE_SHEET_ID);
-  const cfCopy = cfTemplate.makeCopy('CF — ' + address, propFolder);
+  const cfTarget = subFolders['Cashflow Calculation'] || propFolder;
+  const cfCopy = cfTemplate.makeCopy('Cash Flow Calc - ' + address, cfTarget);
   const cfSheetId = cfCopy.getId();
   const cfSheetUrl = cfCopy.getUrl();
 
@@ -131,7 +137,9 @@ function createCommercialDeal(address) {
     Logger.log('Could not set sharing on CF copy / folder: ' + e.message);
   }
 
-  // 4. Seed the CF Settings tab with address + DD folder URL
+  // 4. Seed the CF Settings tab with address + DD folder URL + CF self-link.
+  //    Storing 'CF Sheet URL' lets dashboard sections link users back to
+  //    the sheet for data-entry ("Open CF Sheet" from empty states).
   try {
     const ss = SpreadsheetApp.openById(cfSheetId);
     let settings = ss.getSheetByName('Settings');
@@ -139,6 +147,7 @@ function createCommercialDeal(address) {
       setSettingsValue_(settings, 'Address', address);
       setSettingsValue_(settings, 'Google Drive folder', propFolder.getUrl());
       setSettingsValue_(settings, 'DD Folder URL', propFolder.getUrl());
+      setSettingsValue_(settings, 'CF Sheet URL', cfSheetUrl);
       setSettingsValue_(settings, 'Last Updated', new Date().toISOString().slice(0, 10));
     }
   } catch (e) {
